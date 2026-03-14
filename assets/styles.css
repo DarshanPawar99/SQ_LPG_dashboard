@@ -1,0 +1,829 @@
+/*
+assets/styles.css
+
+Professional dark theme for the LPG Stock Tacker Dashboard.
+Dash automatically serves files inside the assets/ folder.
+
+Suggested structure:
+project/
+  app.py
+  data_loader.py
+  aggregations.py
+  components.py
+  assets/
+    styles.css
+*/
+
+:root {
+  --bg-app: #040814;
+  --bg-shell-top: #071126;
+  --bg-shell-bottom: #040814;
+  --bg-card: #091328;
+  --bg-card-soft: #081225;
+  --bg-card-hover: #0b1631;
+  --bg-card-deep: #0b1731;
+  --bg-input: #08132a;
+
+  --border-main: #0d1d45;
+  --border-soft: #10224d;
+  --border-mid: #142956;
+  --border-strong: #19315f;
+  --border-active: #2b61ff;
+
+  --text-strong: #ffffff;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-faint: #64748b;
+  --text-accent: #77a5ff;
+  --text-danger: #ff5d5d;
+
+  --risk-out: #ef4444;
+  --risk-critical: #f97316;
+  --risk-moderate: #eab308;
+  --risk-safe: #22c55e;
+
+  --success-bg: #102516;
+  --success-text: #7ee787;
+  --danger-bg: #2a1216;
+  --danger-text: #ff9cab;
+
+  --radius-shell: 24px;
+  --radius-card: 24px;
+  --radius-pill: 999px;
+  --radius-input: 12px;
+
+  --shadow-shell: 0 30px 80px rgba(0, 0, 0, 0.55);
+  --shadow-card: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  --shadow-active: 0 0 0 1px rgba(43, 97, 255, 0.25);
+
+  --font-stack: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--bg-app);
+  color: var(--text-main);
+  font-family: var(--font-stack);
+}
+
+body {
+  line-height: 1.4;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------
+   App shell
+--------------------------------------------------------- */
+.page-shell {
+  min-height: 100vh;
+  background: var(--bg-app);
+  padding: 16px;
+}
+
+.dashboard-header,
+.dashboard-body {
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  overflow: hidden;
+  border: 1px solid var(--border-main);
+  border-bottom: 0;
+  border-radius: var(--radius-shell) var(--radius-shell) 0 0;
+  background: linear-gradient(180deg, var(--bg-shell-top) 0%, var(--bg-shell-bottom) 100%);
+  box-shadow: var(--shadow-shell);
+}
+
+.dashboard-body {
+  overflow: hidden;
+  border: 1px solid var(--border-main);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-shell) var(--radius-shell);
+  background: linear-gradient(180deg, var(--bg-shell-top) 0%, var(--bg-shell-bottom) 100%);
+  box-shadow: var(--shadow-shell);
+}
+
+.dashboard-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.dashboard-brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-logo-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 112px;
+  height: 56px;
+  border: 1px solid #183164;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0b1631 0%, #081225 100%);
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.dashboard-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-main-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-subtitle {
+  margin: 0;
+  color: var(--text-danger);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.dashboard-date-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-date-picker {
+  min-width: 180px;
+}
+
+.dashboard-date-picker .SingleDatePicker,
+.dashboard-date-picker .DateInput,
+.dashboard-date-picker input {
+  background: var(--bg-input) !important;
+  color: var(--text-main) !important;
+}
+
+.dashboard-date-picker .DateInput {
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-input) !important;
+}
+
+.dashboard-date-picker .DateInput_input {
+  height: 48px !important;
+  padding: 0 14px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.dashboard-date-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+/* ---------------------------------------------------------
+   Sections
+--------------------------------------------------------- */
+.kpi-card-row,
+.region-card-grid-wrapper,
+.section-tabs-wrap,
+.executive-view-section,
+.pivot-section-wrapper {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+.kpi-card-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.region-card-grid-wrapper {
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.section-tabs-wrap {
+  display: flex;
+  gap: 40px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.section-tab-active {
+  padding: 16px 12px;
+  border-bottom: 2px solid var(--border-active);
+  color: var(--text-accent);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.executive-view-section {
+  padding-top: 32px;
+  padding-bottom: 8px;
+}
+
+.executive-view-header {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: 46px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.section-subtitle {
+  margin: 12px 0 0;
+  color: var(--text-faint);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.executive-view-card {
+  display: grid;
+  grid-template-columns: 0.95fr 1.85fr;
+  gap: 14px;
+  align-items: center;
+  padding: 24px;
+  border: 1px solid var(--border-soft);
+  border-radius: 28px;
+  background: var(--bg-card-soft);
+  box-shadow: var(--shadow-card);
+}
+
+/* ---------------------------------------------------------
+   KPI cards
+--------------------------------------------------------- */
+.kpi-card {
+  padding: 20px;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-card);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+.kpi-label {
+  color: var(--text-faint);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.kpi-value {
+  margin-top: 12px;
+  color: var(--text-strong);
+  font-size: 40px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.kpi-subtitle {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.kpi-risk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #13264f;
+}
+
+/* ---------------------------------------------------------
+   Count dots
+--------------------------------------------------------- */
+.count-dot-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.count-dot-value {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------
+   Region cards
+--------------------------------------------------------- */
+.region-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.region-card {
+  min-height: 150px;
+  padding: 20px 18px;
+  border: 1px solid var(--border-mid);
+  border-radius: 16px;
+  background: var(--bg-card);
+  text-align: left;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.region-card:hover {
+  background: var(--bg-card-hover);
+}
+
+.region-card-active {
+  border-color: var(--border-active);
+  background: var(--bg-card-hover);
+  box-shadow: var(--shadow-active);
+}
+
+.region-card-title {
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.region-card-subtitle {
+  margin-top: 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.region-card-risk-row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.region-card-risk-row .count-dot-wrap {
+  min-width: 0;
+}
+
+/* ---------------------------------------------------------
+   Executive donut
+--------------------------------------------------------- */
+.executive-donut-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 10px;
+  border-right: 1px solid var(--border-soft);
+}
+
+.executive-donut-shell {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  flex: 0 0 220px;
+}
+
+.executive-donut-graph {
+  width: 220px;
+  height: 220px;
+}
+
+.executive-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.executive-donut-total {
+  color: var(--text-strong);
+  font-size: 54px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.executive-donut-caption {
+  margin-top: 4px;
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------
+   Executive risk cards
+--------------------------------------------------------- */
+.executive-cards-container {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.executive-risk-card {
+  padding: 16px;
+  border-radius: 16px;
+  background: transparent;
+  text-align: left;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.executive-risk-card:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.executive-risk-card-active {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.executive-risk-value {
+  font-size: 64px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.executive-risk-title {
+  margin-top: 12px;
+  color: var(--text-strong);
+  font-size: 28px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.executive-risk-subtitle {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.executive-risk-underline {
+  width: 96px;
+  height: 3px;
+  margin-top: 24px;
+  border-radius: 999px;
+}
+
+/* ---------------------------------------------------------
+   Empty pivot state
+--------------------------------------------------------- */
+.pivot-empty-state {
+  margin: 32px 32px 32px;
+  padding: 32px 24px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--bg-card-soft);
+  text-align: center;
+}
+
+.pivot-empty-title {
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------
+   Pivot section
+--------------------------------------------------------- */
+.pivot-section {
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.pivot-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.pivot-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-strong);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.pivot-section-subtitle {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.pivot-selected-risk-text {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.pivot-search-wrap {
+  min-width: 260px;
+}
+
+.pivot-search-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  background: var(--bg-input);
+  color: var(--text-main);
+  outline: none;
+}
+
+.pivot-search-input::placeholder {
+  color: var(--text-faint);
+}
+
+.pivot-search-input:focus {
+  border-color: var(--border-active);
+  box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18);
+}
+
+.pivot-table-wrap {
+  overflow: hidden;
+  margin-top: 24px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-card);
+  background: var(--bg-card-soft);
+}
+
+.pivot-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pivot-th {
+  padding: 16px 20px;
+  background: var(--bg-card-deep);
+  color: var(--text-faint);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.pivot-group-row {
+  border-top: 1px solid var(--border-soft);
+  background: #0a152d;
+}
+
+.pivot-group-cell {
+  padding: 16px 20px;
+}
+
+.pivot-group-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--text-strong);
+}
+
+.pivot-group-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pivot-group-arrow {
+  color: var(--text-accent);
+  font-size: 14px;
+}
+
+.pivot-group-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.pivot-group-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pivot-badge {
+  border: 1px solid #1b3565 !important;
+  background: var(--bg-input) !important;
+  color: var(--text-main) !important;
+}
+
+.pivot-data-row:nth-child(even) {
+  background: #09152a;
+}
+
+.pivot-data-row:nth-child(odd) {
+  background: #081225;
+}
+
+.pivot-cell {
+  padding: 16px 20px;
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.pivot-cell-strong {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.pivot-cell-dim {
+  color: var(--text-faint);
+}
+
+.pivot-no-records {
+  padding: 24px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ---------------------------------------------------------
+   Pills
+--------------------------------------------------------- */
+.risk-pill,
+.continuity-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  color: var(--text-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.continuity-yes {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.continuity-no {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+/* ---------------------------------------------------------
+   Dash / Plotly cleanup
+--------------------------------------------------------- */
+.js-plotly-plot,
+.plot-container,
+.plotly,
+.dash-graph {
+  background: transparent !important;
+}
+
+.modebar {
+  display: none !important;
+}
+
+/* ---------------------------------------------------------
+   Responsive behavior
+--------------------------------------------------------- */
+@media (max-width: 1280px) {
+  .region-card-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .executive-view-card {
+    grid-template-columns: 1fr;
+  }
+
+  .executive-donut-container {
+    border-right: 0;
+    padding-right: 0;
+    justify-content: center;
+    border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 24px;
+  }
+
+  .executive-cards-container {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .dashboard-header-inner,
+  .pivot-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .kpi-card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .region-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .executive-cards-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    padding: 8px;
+  }
+
+  .dashboard-header-inner,
+  .kpi-card-row,
+  .region-card-grid-wrapper,
+  .section-tabs-wrap,
+  .executive-view-section,
+  .pivot-section-wrapper {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .section-title {
+    font-size: 34px;
+  }
+
+  .dashboard-main-title {
+    font-size: 22px;
+  }
+
+  .dashboard-brand-wrap {
+    align-items: flex-start;
+  }
+
+  .dashboard-logo-block {
+    width: 92px;
+    height: 48px;
+    font-size: 15px;
+  }
+
+  .region-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pivot-th,
+  .pivot-cell,
+  .pivot-group-cell {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
