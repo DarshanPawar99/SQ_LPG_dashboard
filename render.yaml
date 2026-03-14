@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: sq-lpg-dashboard
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: sh -c 'gunicorn app:server --bind 0.0.0.0:${PORT:-10000}'
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: PYTHONUNBUFFERED
+        value: "1"
