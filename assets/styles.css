@@ -2,16 +2,15 @@
 assets/styles.css
 
 Professional dark theme for the LPG Stock Tacker Dashboard.
-Dash automatically serves files inside the assets/ folder.
 
-Suggested structure:
-project/
-  app.py
-  data_loader.py
-  aggregations.py
-  components.py
-  assets/
-    styles.css
+Improvements:
+- Donut legend styles
+- Better empty pivot state with icon and hint
+- Smoother transitions on cards
+- Pivot summary bar
+- Date label styling
+- Focus-visible outlines for accessibility
+- Refined responsive breakpoints
 */
 
 :root {
@@ -58,6 +57,9 @@ project/
 
   --font-stack: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
 }
 
 * {
@@ -88,6 +90,13 @@ textarea {
 button {
   border: 0;
   cursor: pointer;
+}
+
+/* Focus-visible for keyboard accessibility */
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--border-active);
+  outline-offset: 2px;
 }
 
 /* ---------------------------------------------------------
@@ -180,6 +189,14 @@ button {
   gap: 12px;
 }
 
+.dashboard-date-label {
+  color: var(--text-faint);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .dashboard-date-picker {
   min-width: 180px;
 }
@@ -201,21 +218,6 @@ button {
   padding: 0 14px !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-}
-
-.dashboard-date-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  padding: 0 20px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-input);
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
 }
 
 /* ---------------------------------------------------------
@@ -306,6 +308,11 @@ button {
   border-radius: var(--radius-card);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-normal);
+}
+
+.kpi-card:hover {
+  border-color: var(--border-strong);
 }
 
 .kpi-label {
@@ -377,11 +384,12 @@ button {
   border-radius: 16px;
   background: var(--bg-card);
   text-align: left;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background var(--transition-normal), border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
 }
 
 .region-card:hover {
   background: var(--bg-card-hover);
+  transform: translateY(-1px);
 }
 
 .region-card-active {
@@ -419,7 +427,7 @@ button {
 }
 
 /* ---------------------------------------------------------
-   Executive donut
+   Executive donut + legend
 --------------------------------------------------------- */
 .executive-donut-container {
   display: flex;
@@ -427,6 +435,12 @@ button {
   gap: 12px;
   padding-right: 10px;
   border-right: 1px solid var(--border-soft);
+}
+
+.executive-donut-with-legend {
+  display: flex;
+  align-items: center;
+  gap: 24px;
 }
 
 .executive-donut-shell {
@@ -467,6 +481,39 @@ button {
   text-transform: uppercase;
 }
 
+/* Donut legend */
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.donut-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.donut-legend-label {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 90px;
+}
+
+.donut-legend-value {
+  color: var(--text-strong);
+  font-size: 14px;
+  font-weight: 700;
+}
+
 /* ---------------------------------------------------------
    Executive risk cards
 --------------------------------------------------------- */
@@ -481,15 +528,17 @@ button {
   border-radius: 16px;
   background: transparent;
   text-align: left;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
 }
 
 .executive-risk-card:hover {
   background: rgba(255, 255, 255, 0.02);
+  transform: translateY(-2px);
 }
 
 .executive-risk-card-active {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.015);
 }
 
 .executive-risk-value {
@@ -525,17 +574,29 @@ button {
 --------------------------------------------------------- */
 .pivot-empty-state {
   margin: 32px 32px 32px;
-  padding: 32px 24px;
+  padding: 40px 24px;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-card);
   background: var(--bg-card-soft);
   text-align: center;
 }
 
+.pivot-empty-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
 .pivot-empty-title {
   color: var(--text-strong);
   font-size: 18px;
   font-weight: 600;
+}
+
+.pivot-empty-hint {
+  margin-top: 8px;
+  color: var(--text-faint);
+  font-size: 14px;
 }
 
 /* ---------------------------------------------------------
@@ -571,8 +632,7 @@ button {
 }
 
 .pivot-selected-risk-text {
-  color: var(--text-main);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .pivot-search-wrap {
@@ -588,6 +648,7 @@ button {
   background: var(--bg-input);
   color: var(--text-main);
   outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .pivot-search-input::placeholder {
@@ -599,9 +660,22 @@ button {
   box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18);
 }
 
+/* Pivot summary bar */
+.pivot-summary-bar {
+  margin-top: 16px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: var(--bg-card-deep);
+  border: 1px solid var(--border-soft);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
 .pivot-table-wrap {
   overflow: hidden;
-  margin-top: 24px;
+  margin-top: 16px;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-card);
   background: var(--bg-card-soft);
@@ -669,12 +743,20 @@ button {
   color: var(--text-main) !important;
 }
 
+.pivot-data-row {
+  transition: background var(--transition-fast);
+}
+
 .pivot-data-row:nth-child(even) {
   background: #09152a;
 }
 
 .pivot-data-row:nth-child(odd) {
   background: #081225;
+}
+
+.pivot-data-row:hover {
+  background: var(--bg-card-hover);
 }
 
 .pivot-cell {
@@ -758,6 +840,10 @@ button {
     padding-bottom: 24px;
   }
 
+  .executive-donut-with-legend {
+    justify-content: center;
+  }
+
   .executive-cards-container {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -780,6 +866,10 @@ button {
 
   .executive-cards-container {
     grid-template-columns: 1fr;
+  }
+
+  .pivot-search-wrap {
+    width: 100%;
   }
 }
 
@@ -820,10 +910,26 @@ button {
     grid-template-columns: 1fr;
   }
 
+  .executive-donut-with-legend {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .donut-legend {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px 20px;
+  }
+
   .pivot-th,
   .pivot-cell,
   .pivot-group-cell {
     padding-left: 12px;
     padding-right: 12px;
+  }
+
+  .pivot-empty-state {
+    margin: 16px;
   }
 }
