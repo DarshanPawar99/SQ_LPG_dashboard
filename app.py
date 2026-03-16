@@ -1,24 +1,11 @@
 """
 Main Dash application for the LPG Stock Tacker Dashboard.
 
-This file focuses on:
-- app initialization
-- high-level layout
-- callbacks for interactivity
-- orchestration across helper modules
-
-Other files that will be added next:
-- data_loader.py
-- stock_logic.py
-- aggregations.py
-- components.py
-- assets/styles.css
-
-Notes:
-- During data load, vendors with gail/png == 'yes' will be filtered out.
-- Live LPG days are calculated using the selected dashboard date.
-- Saturday and Sunday are excluded from stock decay.
-- Pivot table expands only after a risk category is selected.
+Improvements:
+- Graceful startup even when data file is missing
+- All magic strings replaced with config constants
+- Removed duplicate date pill (redundant with date picker)
+- Cleaner callback structure
 """
 
 from __future__ import annotations
@@ -30,7 +17,6 @@ import dash
 from dash import Dash, Input, Output, State, callback, dcc, html
 from dash.exceptions import PreventUpdate
 
-# These modules will be created next.
 from aggregations import (
     build_city_donut_data,
     build_city_vendor_summary,
@@ -50,13 +36,16 @@ from components import (
     build_region_card_grid,
     build_section_tabs,
 )
+from config import (
+    APP_SUBTITLE,
+    APP_TITLE,
+    DEFAULT_SELECTED_DATE,
+    DEFAULT_SELECTED_RISK,
+    SECTION_TAB_LABEL,
+)
 from data_loader import load_dashboard_data
 from logger import setup_logger
 
-
-DEFAULT_SELECTED_DATE = date(2026, 3, 17)
-DEFAULT_RISK = ""
-APP_TITLE = "LPG Stock Tacker Dashboard"
 
 logger = setup_logger(__name__)
 
@@ -64,11 +53,14 @@ app: Dash = Dash(
     __name__,
     title=APP_TITLE,
     suppress_callback_exceptions=True,
+    meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1"},
+    ],
 )
 server = app.server
 
 
-# Load once at startup. Later we can switch this to a cached loader if needed.
+# Load once at startup. data_loader returns empty DF on failure.
 RAW_DF = load_dashboard_data()
 logger.info("Dashboard dataset loaded at startup with %s rows", len(RAW_DF))
 
@@ -77,7 +69,6 @@ logger.info("Dashboard dataset loaded at startup with %s rows", len(RAW_DF))
 # Helper functions
 # -----------------------------
 def get_city_options(enriched_rows: list[dict[str, Any]]) -> list[str]:
-    """Return sorted city/region options from enriched rows."""
     cities = {str(row["region"]).strip() for row in enriched_rows if row.get("region")}
     return sorted(cities)
 
@@ -101,12 +92,12 @@ app.layout = html.Div(
     children=[
         dcc.Store(id="store-enriched-rows", data=initial_rows),
         dcc.Store(id="store-selected-city", data=initial_city),
-        dcc.Store(id="store-selected-risk", data=DEFAULT_RISK),
+        dcc.Store(id="store-selected-risk", data=DEFAULT_SELECTED_RISK),
         dcc.Store(id="store-search-text", data=""),
         dcc.Store(id="store-city-options", data=initial_cities),
         build_dashboard_header(
             title=APP_TITLE,
-            subtitle="Live stock risk, client exposure, and vendor continuity preview",
+            subtitle=APP_SUBTITLE,
             selected_date=DEFAULT_SELECTED_DATE,
         ),
         html.Div(
@@ -128,7 +119,7 @@ app.layout = html.Div(
                         selected_city=initial_city,
                     ),
                 ),
-                build_section_tabs(active_label="01 Executive View"),
+                build_section_tabs(active_label=SECTION_TAB_LABEL),
                 html.Div(
                     className="executive-view-section",
                     children=[
@@ -159,7 +150,7 @@ app.layout = html.Div(
                                     className="executive-cards-container",
                                     children=build_executive_cards(
                                         city_summary=initial_city_summary,
-                                        selected_risk=DEFAULT_RISK,
+                                        selected_risk=DEFAULT_SELECTED_RISK,
                                     ),
                                 ),
                             ],
@@ -178,7 +169,7 @@ app.layout = html.Div(
 
 
 # -----------------------------
-# Callback: selected date -> recompute full dashboard data
+# Callback: selected date -> recompute
 # -----------------------------
 @callback(
     Output("store-enriched-rows", "data"),
@@ -192,12 +183,6 @@ def refresh_dashboard_for_date(
     selected_date_str: str | None,
     current_city: str | None,
 ) -> tuple[list[dict[str, Any]], list[str], str, str]:
-    """
-    Rebuild enriched dashboard rows whenever the selected date changes.
-
-    Also resets the selected risk, because risk categories can change when
-    live LPG days change.
-    """
     logger.info("Refreshing dashboard for selected date: %s", selected_date_str)
     selected_date = date.fromisoformat(selected_date_str) if selected_date_str else DEFAULT_SELECTED_DATE
     enriched_rows = enrich_dashboard_rows(RAW_DF, selected_date)
@@ -212,7 +197,7 @@ def refresh_dashboard_for_date(
 
 
 # -----------------------------
-# Callback: enriched rows / selected city -> update KPI, regions, executive section
+# Callback: enriched rows / selected city -> update sections
 # -----------------------------
 @callback(
     Output("kpi-card-row", "children"),
@@ -229,7 +214,6 @@ def refresh_top_sections(
     selected_city: str,
     selected_risk: str,
 ):
-    """Refresh the main visible dashboard sections."""
     vendor_summary = build_vendor_risk_summary(enriched_rows)
     client_summary = build_client_worst_risk_summary(enriched_rows)
     region_cards = build_region_cards(enriched_rows)
@@ -242,10 +226,7 @@ def refresh_top_sections(
         build_kpi_cards(vendor_summary=vendor_summary, client_summary=client_summary),
         build_region_card_grid(region_cards=region_cards, selected_city=selected_city),
         city_label,
-        build_executive_donut(
-            donut_data=city_donut,
-            total_vendors=city_summary["total_vendors"],
-        ),
+        build_executive_donut(donut_data=city_donut, total_vendors=city_summary["total_vendors"]),
         build_executive_cards(city_summary=city_summary, selected_risk=selected_risk),
     )
 
@@ -264,11 +245,6 @@ def select_city_from_region_card(
     clicks: list[int | None],
     __: list[dict[str, str]],
 ) -> tuple[str, str]:
-    """Set selected city based on which region card was clicked."""
-    logger.debug("Region card click callback triggered")
-
-    # Guard against callback noise when region card components are re-rendered
-    # (for example on risk selection). Only proceed on a real click event.
     if not clicks or all((value or 0) <= 0 for value in clicks):
         raise PreventUpdate
 
@@ -296,7 +272,6 @@ def select_risk_category(
     _: list[int | None],
     current_risk: str,
 ) -> str:
-    """Toggle selected risk category from executive cards."""
     ctx = dash.callback_context
     if not ctx.triggered:
         raise PreventUpdate
@@ -307,7 +282,7 @@ def select_risk_category(
 
     clicked_risk = str(trigger["index"])
     next_risk = "" if current_risk == clicked_risk else clicked_risk
-    logger.info("Risk selection changed from %s to %s", current_risk, next_risk)
+    logger.info("Risk selection: %s -> %s", current_risk, next_risk)
     return next_risk
 
 
@@ -322,13 +297,11 @@ def select_risk_category(
 def sync_search_text(search_values: list[str | None]) -> str:
     if not search_values:
         return ""
-    search_text = str(search_values[-1] or "").strip()
-    logger.debug("Pivot search updated: %s", search_text)
-    return search_text
+    return str(search_values[-1] or "").strip()
 
 
 # -----------------------------
-# Callback: expand pivot only after risk category selection
+# Callback: pivot section
 # -----------------------------
 @callback(
     Output("pivot-section-wrapper", "children"),
@@ -343,12 +316,7 @@ def refresh_pivot_section(
     selected_risk: str,
     search_text: str,
 ):
-    """
-    Show the pivot section only after a risk category is selected.
-    Otherwise show a compact prompt.
-    """
     if not selected_risk:
-        logger.debug("Pivot hidden until risk is selected")
         return build_empty_pivot_state()
 
     pivot_groups = build_client_pivot_groups(
