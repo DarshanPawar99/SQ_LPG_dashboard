@@ -1,20 +1,15 @@
 """
 aggregations.py
 
-This module is the dashboard's logic/summary layer.
+Dashboard logic/summary layer.
 
-It is responsible for:
+Responsible for:
 - enriching raw cleaned data with live LPG days and risk category
 - building KPI summaries
 - building region cards
 - building selected-city executive view summaries
 - building donut input data
 - building grouped client-vendor pivot rows
-
-Design goals:
-- keep UI code simple
-- keep summary logic reusable
-- make future refactoring to stock_logic.py easy
 """
 
 from __future__ import annotations
@@ -24,12 +19,13 @@ from typing import Any
 
 import pandas as pd
 
+from config import RISK_COLORS, RISK_LEVELS
 from stock_logic import (
-    RISK_COLORS,
-    RISK_LEVELS,
     as_date,
     get_live_days,
     get_risk_category,
+    get_risk_color,
+    get_risk_level,
     risk_sort_key,
     working_days_between,
 )
@@ -47,16 +43,8 @@ def _count_by_risk(rows: list[dict[str, Any]]) -> dict[str, int]:
     }
 
 
-
 def _worst_risk_group(rows: list[dict[str, Any]], key_field: str) -> list[dict[str, Any]]:
-    """
-    Collapse rows to one record per key_field using worst vendor risk.
-
-    Example:
-    - per vendor KPI summary
-    - per client KPI summary using worst vendor risk
-    - per city vendor summary
-    """
+    """Collapse rows to one record per key_field using worst vendor risk."""
     grouped: dict[str, dict[str, Any]] = {}
 
     for row in rows:
@@ -79,23 +67,10 @@ def _worst_risk_group(rows: list[dict[str, Any]], key_field: str) -> list[dict[s
 
 
 # -------------------------------------------------------------------
-# Public functions used by app.py
+# Public functions
 # -------------------------------------------------------------------
 def enrich_dashboard_rows(df: pd.DataFrame, selected_date: date) -> list[dict[str, Any]]:
-    """
-    Convert cleaned DataFrame rows into enriched dashboard rows.
-
-    Required input columns:
-    - vendor
-    - client
-    - region
-    - pax
-    - days_of_stock
-    - last_updated
-    - gail_png
-    Optional:
-    - continuity
-    """
+    """Convert cleaned DataFrame rows into enriched dashboard rows."""
     if df.empty:
         return []
 
@@ -124,21 +99,16 @@ def enrich_dashboard_rows(df: pd.DataFrame, selected_date: date) -> list[dict[st
                 "working_days_consumed": working_days_between(last_updated, selected_date),
                 "live_days": live_days,
                 "risk": risk,
-                "risk_level": RISK_LEVELS[risk],
-                "risk_color": RISK_COLORS[risk],
+                "risk_level": get_risk_level(risk),
+                "risk_color": get_risk_color(risk),
             }
         )
 
     return rows
 
 
-
 def build_vendor_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Unique vendor KPI summary.
-
-    Uses worst risk per vendor.
-    """
+    """Unique vendor KPI summary using worst risk per vendor."""
     vendors = _worst_risk_group(enriched_rows, "vendor")
     counts = _count_by_risk(vendors)
 
@@ -150,13 +120,8 @@ def build_vendor_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, 
     }
 
 
-
 def build_client_worst_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """
-    Unique client KPI summary.
-
-    Uses worst vendor risk per client.
-    """
+    """Unique client KPI summary using worst vendor risk per client."""
     clients = _worst_risk_group(enriched_rows, "client")
     counts = _count_by_risk(clients)
 
@@ -168,11 +133,8 @@ def build_client_worst_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict
     }
 
 
-
 def build_region_cards(enriched_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """
-    Build region tiles/cards using unique vendors and worst vendor risk.
-    """
+    """Build region tiles/cards using unique vendors and worst vendor risk."""
     if not enriched_rows:
         return []
 
@@ -195,11 +157,8 @@ def build_region_cards(enriched_rows: list[dict[str, Any]]) -> list[dict[str, An
     return cards
 
 
-
 def build_city_vendor_summary(enriched_rows: list[dict[str, Any]], selected_city: str) -> dict[str, Any]:
-    """
-    Build executive summary for selected city using unique vendors.
-    """
+    """Build executive summary for selected city using unique vendors."""
     city_rows = [row for row in enriched_rows if row.get("region") == selected_city]
     city_vendors = _worst_risk_group(city_rows, "vendor")
     counts = _count_by_risk(city_vendors)
@@ -219,13 +178,8 @@ def build_city_vendor_summary(enriched_rows: list[dict[str, Any]], selected_city
     }
 
 
-
 def build_city_donut_data(enriched_rows: list[dict[str, Any]], selected_city: str) -> list[dict[str, Any]]:
-    """
-    Donut chart input for selected city.
-
-    Uses unique vendors in that city.
-    """
+    """Donut chart input for selected city using unique vendors."""
     summary = build_city_vendor_summary(enriched_rows, selected_city)
 
     return [
@@ -236,23 +190,13 @@ def build_city_donut_data(enriched_rows: list[dict[str, Any]], selected_city: st
     ]
 
 
-
 def build_client_pivot_groups(
     enriched_rows: list[dict[str, Any]],
     selected_city: str,
     selected_risk: str,
     search_text: str = "",
 ) -> list[dict[str, Any]]:
-    """
-    Build grouped client-vendor pivot rows.
-
-    Rules:
-    - filter to selected city
-    - filter to selected risk (mandatory when pivot is shown)
-    - search over client/vendor
-    - group by client
-    - preserve vendor rows under each client
-    """
+    """Build grouped client-vendor pivot rows."""
     city_rows = [row for row in enriched_rows if row.get("region") == selected_city]
 
     filtered = [
