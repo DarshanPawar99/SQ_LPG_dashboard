@@ -2,10 +2,6 @@
 logger.py
 
 Shared logging setup for the LPG Stock Tracker dashboard.
-
-Creates:
-- console logs for quick local visibility
-- file logs at `logs/dashboard.log` for troubleshooting
 """
 
 from __future__ import annotations
