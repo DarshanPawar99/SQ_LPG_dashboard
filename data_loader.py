@@ -191,9 +191,7 @@ def filter_out_gail_png_yes(vendor_df: pd.DataFrame) -> pd.DataFrame:
 def merge_client_vendor_data(client_df: pd.DataFrame, vendor_df: pd.DataFrame) -> pd.DataFrame:
     """
     Merge client rows to vendor rows using vendor_id.
-
-    Final grain:
-    one row = one client + one vendor
+    Final grain: one row = one client + one vendor.
     """
     merged = client_df.merge(
         vendor_df,
@@ -202,10 +200,8 @@ def merge_client_vendor_data(client_df: pd.DataFrame, vendor_df: pd.DataFrame) -
         suffixes=("_client", "_vendor"),
     )
 
-    # Prefer vendor region because client location is mostly blank in your file
     merged[CANONICAL_REGION] = merged[f"{CANONICAL_REGION}"]
 
-    # Prefer vendor name from vendor sheet
     if f"{CANONICAL_VENDOR}_vendor" in merged.columns:
         merged[CANONICAL_VENDOR] = merged[f"{CANONICAL_VENDOR}_vendor"]
     elif f"{CANONICAL_VENDOR}_client" in merged.columns:
@@ -230,27 +226,39 @@ def merge_client_vendor_data(client_df: pd.DataFrame, vendor_df: pd.DataFrame) -
 # PUBLIC LOADER
 # -------------------------------------------------------------------
 def load_dashboard_data(file_path: str | Path = DATA_FILE_PATH) -> pd.DataFrame:
-    raw_vendor_df, raw_client_df = load_raw_workbook(file_path=file_path)
+    """
+    Load and prepare the dashboard dataset.
 
-    vendor_df = standardize_vendor_columns(raw_vendor_df)
-    client_df = standardize_client_columns(raw_client_df)
+    Returns an empty DataFrame with the correct columns if the file
+    is missing or unreadable, so the app can still start gracefully.
+    """
+    empty = pd.DataFrame(columns=[
+        CANONICAL_VENDOR_ID, CANONICAL_VENDOR, CANONICAL_CLIENT,
+        CANONICAL_REGION, CANONICAL_PAX, CANONICAL_DAYS_OF_STOCK,
+        CANONICAL_LAST_UPDATED, CANONICAL_GAIL_PNG, CANONICAL_CONTINUITY,
+    ])
 
-    vendor_df = clean_vendor_dataframe(vendor_df)
-    client_df = clean_client_dataframe(client_df)
-
-    vendor_df = filter_out_gail_png_yes(vendor_df)
-
-    merged_df = merge_client_vendor_data(client_df, vendor_df)
-    logger.info("Dashboard data prepared with %s merged rows", len(merged_df))
-    return merged_df
-
-
-if __name__ == "__main__":
     try:
-        df = load_dashboard_data()
-        print("Dashboard data loaded successfully")
-        print(df.head())
-        print(f"Rows: {len(df)}")
-        print(f"Columns: {list(df.columns)}")
+        raw_vendor_df, raw_client_df = load_raw_workbook(file_path=file_path)
+    except FileNotFoundError:
+        logger.warning("Data file not found — starting with empty dataset")
+        return empty
     except Exception as exc:
-        print(f"Error loading dashboard data: {exc}")
+        logger.error("Failed to load workbook: %s", exc)
+        return empty
+
+    try:
+        vendor_df = standardize_vendor_columns(raw_vendor_df)
+        client_df = standardize_client_columns(raw_client_df)
+
+        vendor_df = clean_vendor_dataframe(vendor_df)
+        client_df = clean_client_dataframe(client_df)
+
+        vendor_df = filter_out_gail_png_yes(vendor_df)
+
+        merged_df = merge_client_vendor_data(client_df, vendor_df)
+        logger.info("Dashboard data prepared with %s merged rows", len(merged_df))
+        return merged_df
+    except Exception as exc:
+        logger.error("Failed to process data: %s", exc)
+        return empty
