@@ -3,13 +3,7 @@ config.py
 
 Central configuration for the LPG Stock Tacker Dashboard.
 
-Use this file for values that may change between environments:
-- app title
-- dataset path
-- sheet names
-- default selected date
-- dashboard labels
-- risk constants and colors
+Single source of truth for all constants. Other modules import from here.
 """
 
 from __future__ import annotations
@@ -38,6 +32,8 @@ CLIENT_SHEET_NAME = "Master Client Data"
 # DEFAULT UI STATE
 # -------------------------------------------------------------------
 DEFAULT_SELECTED_DATE = date(2026, 3, 17)
+MIN_SELECTABLE_DATE = date(2025, 1, 1)
+MAX_SELECTABLE_DATE = date(2027, 12, 31)
 DEFAULT_SELECTED_RISK = ""
 DEFAULT_SEARCH_TEXT = ""
 
@@ -46,12 +42,12 @@ DEFAULT_SEARCH_TEXT = ""
 # DASHBOARD LABELS
 # -------------------------------------------------------------------
 SECTION_TAB_LABEL = "01 Executive View"
-EMPTY_PIVOT_MESSAGE = "Select risk category"
+EMPTY_PIVOT_MESSAGE = "Select a risk category above to expand the client–vendor breakdown"
 EXECUTIVE_VIEW_TITLE = "Executive View"
 
 
 # -------------------------------------------------------------------
-# RISK LOGIC
+# RISK LOGIC (single source of truth)
 # -------------------------------------------------------------------
 RISK_COLORS = {
     "Out of Stock": "#ef4444",
@@ -73,6 +69,13 @@ RISK_DISPLAY_ORDER = [
     "Moderate",
     "Safe",
 ]
+
+RISK_SUBTITLES = {
+    "Out of Stock": "Immediate Action",
+    "Critical": "1–2 Live Days",
+    "Moderate": "3–4 Live Days",
+    "Safe": "5+ Live Days",
+}
 
 
 # -------------------------------------------------------------------
@@ -100,5 +103,4 @@ CANONICAL_CONTINUITY = "continuity"
 # -------------------------------------------------------------------
 # OPTIONAL FUTURE SETTINGS
 # -------------------------------------------------------------------
-# Set to False later if you want production mode styling / deployment behavior.
 USE_SAMPLE_FALLBACK_DATA = False
