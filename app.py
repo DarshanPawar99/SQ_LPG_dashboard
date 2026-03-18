@@ -176,7 +176,7 @@ app.layout = html.Div(
     Output("store-city-options", "data"),
     Output("store-selected-city", "data"),
     Output("store-selected-risk", "data"),
-    Input("selected-date-input", "date"),
+    Input("selected-date-input", "value"),
     State("store-selected-city", "data"),
 )
 def refresh_dashboard_for_date(
