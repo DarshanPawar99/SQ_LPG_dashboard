@@ -198,34 +198,43 @@ input:focus-visible {
 }
 
 .dashboard-date-input {
-  height: 48px;
-  min-width: 190px;
-  padding: 0 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-input);
-  background: var(--bg-input);
-  color: var(--text-main);
-  font-size: 14px;
-  font-weight: 600;
-  font-family: var(--font-stack);
-  outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-  -webkit-appearance: none;
-  appearance: none;
-  color-scheme: dark;
+  display: inline-flex;
 }
 
-.dashboard-date-input:hover {
-  border-color: var(--border-active);
+.dashboard-date-input input,
+.dashboard-date-input input[type="date"],
+input#selected-date-input {
+  height: 48px !important;
+  min-width: 190px !important;
+  padding: 0 16px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-input) !important;
+  background: var(--bg-input) !important;
+  color: var(--text-main) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  font-family: var(--font-stack) !important;
+  outline: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  color-scheme: dark !important;
 }
 
-.dashboard-date-input:focus {
-  border-color: var(--border-active);
-  box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18);
+.dashboard-date-input input:hover,
+input#selected-date-input:hover {
+  border-color: var(--border-active) !important;
 }
 
-/* Dark calendar dropdown (Chromium) */
-.dashboard-date-input::-webkit-calendar-picker-indicator {
+.dashboard-date-input input:focus,
+input#selected-date-input:focus {
+  border-color: var(--border-active) !important;
+  box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18) !important;
+}
+
+/* Dark calendar dropdown icon (Chromium) */
+.dashboard-date-input input::-webkit-calendar-picker-indicator,
+input#selected-date-input::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
   cursor: pointer;
 }
