@@ -197,27 +197,37 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
-.dashboard-date-picker {
-  min-width: 180px;
+.dashboard-date-input {
+  height: 48px;
+  min-width: 190px;
+  padding: 0 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  background: var(--bg-input);
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-stack);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  -webkit-appearance: none;
+  appearance: none;
+  color-scheme: dark;
 }
 
-.dashboard-date-picker .SingleDatePicker,
-.dashboard-date-picker .DateInput,
-.dashboard-date-picker input {
-  background: var(--bg-input) !important;
-  color: var(--text-main) !important;
+.dashboard-date-input:hover {
+  border-color: var(--border-active);
 }
 
-.dashboard-date-picker .DateInput {
-  border: 1px solid var(--border-strong) !important;
-  border-radius: var(--radius-input) !important;
+.dashboard-date-input:focus {
+  border-color: var(--border-active);
+  box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18);
 }
 
-.dashboard-date-picker .DateInput_input {
-  height: 48px !important;
-  padding: 0 14px !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
+/* Dark calendar dropdown (Chromium) */
+.dashboard-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
 }
 
 /* ---------------------------------------------------------
