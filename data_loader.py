@@ -7,8 +7,10 @@ Loads the LPG Stock Tracker workbook with 2 sheets:
 - Master Client Data
 
 Business rules:
-- Filter out vendors where GAIL/PNG at Vendor == 'Yes'
 - Join vendor and client sheets using Unique Vendor ID
+- Flag vendors where GAIL/PNG == 'Yes' OR Electrical Equipment Availability == 'Yes'
+  as "alternative" (is_alternative = True)
+- No rows are dropped — the dashboard uses the flag to split LPG vs Alternative KPIs
 - Final output grain = one row per client + vendor
 """
 
@@ -23,6 +25,7 @@ from config import (
     CANONICAL_CONTINUITY,
     CANONICAL_DAYS_OF_STOCK,
     CANONICAL_GAIL_PNG,
+    CANONICAL_IS_ALTERNATIVE,
     CANONICAL_LAST_UPDATED,
     CANONICAL_PAX,
     CANONICAL_REGION,
@@ -31,7 +34,6 @@ from config import (
     CLIENT_SHEET_NAME,
     DATA_FILE_PATH,
     EXCLUDED_GAIL_PNG_VALUES,
-    EXCLUDE_GAIL_PNG_YES,
     VENDOR_SHEET_NAME,
 )
 from logger import setup_logger
@@ -167,32 +169,48 @@ def clean_client_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -------------------------------------------------------------------
-# FILTER RULE
+# FLAG ALTERNATIVE VENDORS
 # -------------------------------------------------------------------
-def filter_out_gail_png_yes(vendor_df: pd.DataFrame) -> pd.DataFrame:
-    if not EXCLUDE_GAIL_PNG_YES:
-        return vendor_df.copy()
+def flag_alternative_vendors(vendor_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add is_alternative column.
 
-    normalized = (
-        vendor_df[CANONICAL_GAIL_PNG]
-        .astype("string")
-        .fillna("")
-        .str.strip()
-        .str.lower()
+    A vendor is "alternative" if EITHER:
+    - GAIL/PNG at Vendor == 'Yes'
+    - Electrical Equipment Availability == 'Yes'
+
+    LPG vendors are all others (is_alternative == False).
+    No rows are dropped.
+    """
+    df = vendor_df.copy()
+
+    gail_flag = (
+        df[CANONICAL_GAIL_PNG]
+        .astype("string").fillna("").str.strip().str.lower()
+        .isin(EXCLUDED_GAIL_PNG_VALUES)
     )
 
-    filtered = vendor_df[~normalized.isin(EXCLUDED_GAIL_PNG_VALUES)].copy()
-    return filtered.reset_index(drop=True)
+    continuity_flag = (
+        df[CANONICAL_CONTINUITY]
+        .astype("string").fillna("").str.strip().str.lower()
+        .isin(EXCLUDED_GAIL_PNG_VALUES)
+    )
+
+    df[CANONICAL_IS_ALTERNATIVE] = gail_flag | continuity_flag
+
+    logger.info(
+        "Alternative vendors flagged: %s alternative, %s LPG",
+        int(df[CANONICAL_IS_ALTERNATIVE].sum()),
+        int((~df[CANONICAL_IS_ALTERNATIVE]).sum()),
+    )
+
+    return df
 
 
 # -------------------------------------------------------------------
 # MERGE
 # -------------------------------------------------------------------
 def merge_client_vendor_data(client_df: pd.DataFrame, vendor_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Merge client rows to vendor rows using vendor_id.
-    Final grain: one row = one client + one vendor.
-    """
     merged = client_df.merge(
         vendor_df,
         on=CANONICAL_VENDOR_ID,
@@ -217,6 +235,7 @@ def merge_client_vendor_data(client_df: pd.DataFrame, vendor_df: pd.DataFrame) -
         CANONICAL_LAST_UPDATED,
         CANONICAL_GAIL_PNG,
         CANONICAL_CONTINUITY,
+        CANONICAL_IS_ALTERNATIVE,
     ]
 
     return merged[final_cols].reset_index(drop=True)
@@ -226,16 +245,11 @@ def merge_client_vendor_data(client_df: pd.DataFrame, vendor_df: pd.DataFrame) -
 # PUBLIC LOADER
 # -------------------------------------------------------------------
 def load_dashboard_data(file_path: str | Path = DATA_FILE_PATH) -> pd.DataFrame:
-    """
-    Load and prepare the dashboard dataset.
-
-    Returns an empty DataFrame with the correct columns if the file
-    is missing or unreadable, so the app can still start gracefully.
-    """
     empty = pd.DataFrame(columns=[
         CANONICAL_VENDOR_ID, CANONICAL_VENDOR, CANONICAL_CLIENT,
         CANONICAL_REGION, CANONICAL_PAX, CANONICAL_DAYS_OF_STOCK,
         CANONICAL_LAST_UPDATED, CANONICAL_GAIL_PNG, CANONICAL_CONTINUITY,
+        CANONICAL_IS_ALTERNATIVE,
     ])
 
     try:
@@ -254,7 +268,7 @@ def load_dashboard_data(file_path: str | Path = DATA_FILE_PATH) -> pd.DataFrame:
         vendor_df = clean_vendor_dataframe(vendor_df)
         client_df = clean_client_dataframe(client_df)
 
-        vendor_df = filter_out_gail_png_yes(vendor_df)
+        vendor_df = flag_alternative_vendors(vendor_df)
 
         merged_df = merge_client_vendor_data(client_df, vendor_df)
         logger.info("Dashboard data prepared with %s merged rows", len(merged_df))
