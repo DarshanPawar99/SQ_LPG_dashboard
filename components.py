@@ -49,12 +49,10 @@ def _risk_pill(risk: str) -> html.Span:
     )
 
 
-def _continuity_pill(value: str) -> html.Span:
-    normalized = str(value or "").strip().lower()
-    is_yes = normalized == "yes"
+def _alternative_pill(is_alt: bool) -> html.Span:
     return html.Span(
-        "Yes" if is_yes else "No",
-        className="continuity-pill continuity-yes" if is_yes else "continuity-pill continuity-no",
+        "Yes" if is_alt else "No",
+        className="continuity-pill continuity-yes" if is_alt else "continuity-pill continuity-no",
     )
 
 
@@ -434,7 +432,7 @@ def build_city_pivot_table(
                         html.Td(_format_number(row.get("live_days", 0)), className="pivot-cell"),
                         html.Td(str(row.get("last_updated", "")), className="pivot-cell pivot-cell-dim"),
                         html.Td(_format_number(row.get("pax", 0)), className="pivot-cell"),
-                        html.Td(_continuity_pill(str(row.get("continuity", ""))), className="pivot-cell"),
+                        html.Td(_alternative_pill(bool(row.get("is_alternative", False))), className="pivot-cell"),
                     ],
                 )
             )
@@ -502,7 +500,7 @@ def build_city_pivot_table(
                                     html.Th("Live LPG Days", className="pivot-th"),
                                     html.Th("Last Updated", className="pivot-th"),
                                     html.Th("Pax", className="pivot-th"),
-                                    html.Th("Continuity", className="pivot-th"),
+                                    html.Th("Alternative Available", className="pivot-th"),
                                 ])
                             ),
                             html.Tbody(table_rows),
