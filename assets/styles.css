@@ -193,13 +193,16 @@ input:focus-visible {
 
 .dashboard-date-input {
   display: inline-flex;
+  width: 200px;
+  min-width: 200px;
 }
 
 .dashboard-date-input input,
 .dashboard-date-input input[type="date"],
 input#selected-date-input {
+  width: 200px !important;
+  min-width: 200px !important;
   height: 48px !important;
-  min-width: 190px !important;
   padding: 0 16px !important;
   border: 1px solid var(--border-strong) !important;
   border-radius: var(--radius-input) !important;
