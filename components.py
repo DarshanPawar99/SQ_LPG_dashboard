@@ -3,13 +3,10 @@ components.py
 
 Reusable Dash UI builders for the LPG Stock Tacker Dashboard.
 
-Improvements over original:
-- Donut chart now has a visible legend beside it
-- Empty pivot state has a clearer message with an icon
-- Executive risk cards show subtitle from config
-- Search input uses debounce=True for performance
-- ARIA labels on interactive elements
-- All risk constants imported from config (single source of truth)
+KPI layout:
+- Row 1 (2 cols): Total Vendors | Total Clients (overall, no risk dots)
+- Row 2 (4 cols): Vendors with LPG (risk dots) | Clients with LPG (risk dots) |
+                  Vendors with Alternative | Clients with Alternative
 """
 
 from __future__ import annotations
@@ -120,7 +117,8 @@ def build_dashboard_header(title: str, subtitle: str, selected_date: date) -> ht
 # -------------------------------------------------------------------
 # KPI cards
 # -------------------------------------------------------------------
-def build_single_kpi_card(summary: dict[str, Any]) -> html.Div:
+def _build_kpi_card_with_risk(summary: dict[str, Any]) -> html.Div:
+    """KPI card WITH risk dot breakdown (for LPG cards)."""
     risk_row = html.Div(
         className="kpi-risk-row",
         children=[
@@ -142,11 +140,57 @@ def build_single_kpi_card(summary: dict[str, Any]) -> html.Div:
     )
 
 
-def build_kpi_cards(vendor_summary: dict[str, Any], client_summary: dict[str, Any]) -> list[html.Div]:
-    return [
-        build_single_kpi_card(vendor_summary),
-        build_single_kpi_card(client_summary),
+def _build_kpi_card_plain(summary: dict[str, Any], accent_color: str = "") -> html.Div:
+    """KPI card WITHOUT risk dots (for overall and alternative cards)."""
+    children = [
+        html.Div(str(summary.get("title", "")), className="kpi-label"),
+        html.Div(
+            _format_number(summary.get("value", 0)),
+            className="kpi-value",
+            style={"color": accent_color} if accent_color else {},
+        ),
+        html.Div(str(summary.get("subtitle", "")), className="kpi-subtitle"),
     ]
+
+    return html.Div(className="kpi-card", children=children)
+
+
+def build_kpi_section(
+    overall_vendor: dict[str, Any],
+    overall_client: dict[str, Any],
+    lpg_vendor: dict[str, Any],
+    lpg_client: dict[str, Any],
+    alt_vendor: dict[str, Any],
+    alt_client: dict[str, Any],
+) -> html.Div:
+    """
+    Build the full KPI section with two rows:
+    Row 1: Total Vendors | Total Clients (overall, plain)
+    Row 2: LPG Vendors (risk) | LPG Clients (risk) | Alt Vendors (plain) | Alt Clients (plain)
+    """
+    return html.Div(
+        className="kpi-section",
+        children=[
+            # Row 1: Overall totals
+            html.Div(
+                className="kpi-card-row kpi-row-overall",
+                children=[
+                    _build_kpi_card_plain(overall_vendor),
+                    _build_kpi_card_plain(overall_client),
+                ],
+            ),
+            # Row 2: LPG + Alternative split
+            html.Div(
+                className="kpi-card-row kpi-row-detail",
+                children=[
+                    _build_kpi_card_with_risk(lpg_vendor),
+                    _build_kpi_card_with_risk(lpg_client),
+                    _build_kpi_card_plain(alt_vendor, accent_color="#77a5ff"),
+                    _build_kpi_card_plain(alt_client, accent_color="#77a5ff"),
+                ],
+            ),
+        ],
+    )
 
 
 # -------------------------------------------------------------------
@@ -196,10 +240,7 @@ def build_section_tabs(active_label: str) -> html.Div:
     return html.Div(
         className="section-tabs-wrap",
         children=[
-            html.Div(
-                active_label,
-                className="section-tab-active",
-            )
+            html.Div(active_label, className="section-tab-active"),
         ],
     )
 
@@ -208,7 +249,6 @@ def build_section_tabs(active_label: str) -> html.Div:
 # Executive donut (with legend)
 # -------------------------------------------------------------------
 def _build_donut_legend(donut_data: list[dict[str, Any]]) -> html.Div:
-    """Build a compact vertical legend beside the donut chart."""
     items = []
     for item in donut_data:
         name = str(item.get("name", ""))
@@ -218,10 +258,7 @@ def _build_donut_legend(donut_data: list[dict[str, Any]]) -> html.Div:
             html.Div(
                 className="donut-legend-item",
                 children=[
-                    html.Span(
-                        className="donut-legend-swatch",
-                        style={"backgroundColor": color},
-                    ),
+                    html.Span(className="donut-legend-swatch", style={"backgroundColor": color}),
                     html.Span(name, className="donut-legend-label"),
                     html.Span(str(value), className="donut-legend-value"),
                 ],
@@ -287,26 +324,10 @@ def build_executive_donut(donut_data: list[dict[str, Any]], total_vendors: int) 
 # -------------------------------------------------------------------
 def build_executive_cards(city_summary: dict[str, Any], selected_risk: str) -> list[html.Button]:
     card_meta = [
-        {
-            "key": "Out of Stock",
-            "value": city_summary.get("out", 0),
-            "pct": city_summary.get("out_pct", 0),
-        },
-        {
-            "key": "Critical",
-            "value": city_summary.get("critical", 0),
-            "pct": city_summary.get("critical_pct", 0),
-        },
-        {
-            "key": "Moderate",
-            "value": city_summary.get("moderate", 0),
-            "pct": city_summary.get("moderate_pct", 0),
-        },
-        {
-            "key": "Safe",
-            "value": city_summary.get("safe", 0),
-            "pct": city_summary.get("safe_pct", 0),
-        },
+        {"key": "Out of Stock", "value": city_summary.get("out", 0), "pct": city_summary.get("out_pct", 0)},
+        {"key": "Critical", "value": city_summary.get("critical", 0), "pct": city_summary.get("critical_pct", 0)},
+        {"key": "Moderate", "value": city_summary.get("moderate", 0), "pct": city_summary.get("moderate_pct", 0)},
+        {"key": "Safe", "value": city_summary.get("safe", 0), "pct": city_summary.get("safe_pct", 0)},
     ]
 
     cards: list[html.Button] = []
@@ -328,14 +349,8 @@ def build_executive_cards(city_summary: dict[str, Any], selected_risk: str) -> l
                         style={"color": RISK_COLORS[risk]},
                     ),
                     html.Div(risk, className="executive-risk-title"),
-                    html.Div(
-                        f"{_format_number(item['pct'])}% · {subtitle}",
-                        className="executive-risk-subtitle",
-                    ),
-                    html.Div(
-                        className="executive-risk-underline",
-                        style={"backgroundColor": RISK_COLORS[risk]},
-                    ),
+                    html.Div(f"{_format_number(item['pct'])}% · {subtitle}", className="executive-risk-subtitle"),
+                    html.Div(className="executive-risk-underline", style={"backgroundColor": RISK_COLORS[risk]}),
                 ],
             )
         )
@@ -352,10 +367,7 @@ def build_empty_pivot_state() -> html.Div:
         children=[
             html.Div("⬆", className="pivot-empty-icon"),
             html.Div(EMPTY_PIVOT_MESSAGE, className="pivot-empty-title"),
-            html.Div(
-                "Click one of the risk cards above to see client–vendor detail",
-                className="pivot-empty-hint",
-            ),
+            html.Div("Click one of the risk cards above to see client–vendor detail", className="pivot-empty-hint"),
         ],
     )
 
@@ -429,18 +441,11 @@ def build_city_pivot_table(
 
     if not table_rows:
         table_rows.append(
-            html.Tr(
-                children=[
-                    html.Td(
-                        "No records found for the selected filters.",
-                        colSpan=7,
-                        className="pivot-no-records",
-                    )
-                ]
-            )
+            html.Tr(children=[
+                html.Td("No records found for the selected filters.", colSpan=7, className="pivot-no-records")
+            ])
         )
 
-    # Summary bar
     summary_text = (
         f"{len(pivot_groups)} clients · {_format_number(total_vendor_rows)} vendor rows · "
         f"{_format_number(total_pax_all)} total pax"
@@ -490,17 +495,15 @@ def build_city_pivot_table(
                         className="pivot-table",
                         children=[
                             html.Thead(
-                                html.Tr(
-                                    children=[
-                                        html.Th("Client", className="pivot-th"),
-                                        html.Th("Vendor", className="pivot-th"),
-                                        html.Th("Risk Category", className="pivot-th"),
-                                        html.Th("Live LPG Days", className="pivot-th"),
-                                        html.Th("Last Updated", className="pivot-th"),
-                                        html.Th("Pax", className="pivot-th"),
-                                        html.Th("Continuity", className="pivot-th"),
-                                    ]
-                                )
+                                html.Tr(children=[
+                                    html.Th("Client", className="pivot-th"),
+                                    html.Th("Vendor", className="pivot-th"),
+                                    html.Th("Risk Category", className="pivot-th"),
+                                    html.Th("Live LPG Days", className="pivot-th"),
+                                    html.Th("Last Updated", className="pivot-th"),
+                                    html.Th("Pax", className="pivot-th"),
+                                    html.Th("Continuity", className="pivot-th"),
+                                ])
                             ),
                             html.Tbody(table_rows),
                         ],
