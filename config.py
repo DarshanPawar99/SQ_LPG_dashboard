@@ -2,8 +2,7 @@
 config.py
 
 Central configuration for the LPG Stock Tacker Dashboard.
-
-Single source of truth for all constants. Other modules import from here.
+Single source of truth for all constants.
 """
 
 from __future__ import annotations
@@ -81,9 +80,7 @@ RISK_SUBTITLES = {
 # -------------------------------------------------------------------
 # BUSINESS RULES
 # -------------------------------------------------------------------
-EXCLUDE_GAIL_PNG_YES = True
 EXCLUDED_GAIL_PNG_VALUES = {"yes"}
-EXCLUDE_WEEKENDS_FROM_STOCK_DECAY = True
 
 
 # -------------------------------------------------------------------
@@ -98,6 +95,7 @@ CANONICAL_DAYS_OF_STOCK = "days_of_stock"
 CANONICAL_LAST_UPDATED = "last_updated"
 CANONICAL_GAIL_PNG = "gail_png"
 CANONICAL_CONTINUITY = "continuity"
+CANONICAL_IS_ALTERNATIVE = "is_alternative"
 
 
 # -------------------------------------------------------------------
