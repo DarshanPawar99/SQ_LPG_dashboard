@@ -1,11 +1,9 @@
 """
 Main Dash application for the LPG Stock Tacker Dashboard.
 
-Improvements:
-- Graceful startup even when data file is missing
-- All magic strings replaced with config constants
-- Removed duplicate date pill (redundant with date picker)
-- Cleaner callback structure
+KPI layout:
+- Row 1: Total Vendors | Total Clients (all, no risk dots)
+- Row 2: Vendors with LPG | Clients with LPG | Vendors with Alternative | Clients with Alternative
 """
 
 from __future__ import annotations
@@ -18,10 +16,14 @@ from dash import Dash, Input, Output, State, callback, dcc, html
 from dash.exceptions import PreventUpdate
 
 from aggregations import (
+    build_alternative_client_summary,
+    build_alternative_vendor_summary,
     build_city_donut_data,
     build_city_vendor_summary,
     build_client_pivot_groups,
     build_client_worst_risk_summary,
+    build_overall_client_summary,
+    build_overall_vendor_summary,
     build_region_cards,
     build_vendor_risk_summary,
     enrich_dashboard_rows,
@@ -32,7 +34,7 @@ from components import (
     build_empty_pivot_state,
     build_executive_cards,
     build_executive_donut,
-    build_kpi_cards,
+    build_kpi_section,
     build_region_card_grid,
     build_section_tabs,
 )
@@ -69,7 +71,9 @@ logger.info("Dashboard dataset loaded at startup with %s rows", len(RAW_DF))
 # Helper functions
 # -----------------------------
 def get_city_options(enriched_rows: list[dict[str, Any]]) -> list[str]:
-    cities = {str(row["region"]).strip() for row in enriched_rows if row.get("region")}
+    """Cities from LPG rows only (alternative vendors excluded from city selection)."""
+    lpg = [r for r in enriched_rows if not r.get("is_alternative", False)]
+    cities = {str(row["region"]).strip() for row in lpg if row.get("region")}
     return sorted(cities)
 
 
@@ -80,8 +84,12 @@ initial_rows = enrich_dashboard_rows(RAW_DF, DEFAULT_SELECTED_DATE)
 initial_cities = get_city_options(initial_rows)
 initial_city = initial_cities[0] if initial_cities else ""
 
-initial_vendor_summary = build_vendor_risk_summary(initial_rows)
-initial_client_summary = build_client_worst_risk_summary(initial_rows)
+initial_overall_vendor = build_overall_vendor_summary(initial_rows)
+initial_overall_client = build_overall_client_summary(initial_rows)
+initial_lpg_vendor = build_vendor_risk_summary(initial_rows)
+initial_lpg_client = build_client_worst_risk_summary(initial_rows)
+initial_alt_vendor = build_alternative_vendor_summary(initial_rows)
+initial_alt_client = build_alternative_client_summary(initial_rows)
 initial_region_cards = build_region_cards(initial_rows)
 initial_city_summary = build_city_vendor_summary(initial_rows, initial_city)
 initial_city_donut = build_city_donut_data(initial_rows, initial_city)
@@ -104,11 +112,14 @@ app.layout = html.Div(
             className="dashboard-body",
             children=[
                 html.Div(
-                    id="kpi-card-row",
-                    className="kpi-card-row",
-                    children=build_kpi_cards(
-                        vendor_summary=initial_vendor_summary,
-                        client_summary=initial_client_summary,
+                    id="kpi-section",
+                    children=build_kpi_section(
+                        overall_vendor=initial_overall_vendor,
+                        overall_client=initial_overall_client,
+                        lpg_vendor=initial_lpg_vendor,
+                        lpg_client=initial_lpg_client,
+                        alt_vendor=initial_alt_vendor,
+                        alt_client=initial_alt_client,
                     ),
                 ),
                 html.Div(
@@ -197,10 +208,10 @@ def refresh_dashboard_for_date(
 
 
 # -----------------------------
-# Callback: enriched rows / selected city -> update sections
+# Callback: enriched rows / selected city -> update all sections
 # -----------------------------
 @callback(
-    Output("kpi-card-row", "children"),
+    Output("kpi-section", "children"),
     Output("region-card-grid", "children"),
     Output("selected-city-label", "children"),
     Output("executive-donut-container", "children"),
@@ -214,8 +225,14 @@ def refresh_top_sections(
     selected_city: str,
     selected_risk: str,
 ):
-    vendor_summary = build_vendor_risk_summary(enriched_rows)
-    client_summary = build_client_worst_risk_summary(enriched_rows)
+    # KPI summaries
+    overall_vendor = build_overall_vendor_summary(enriched_rows)
+    overall_client = build_overall_client_summary(enriched_rows)
+    lpg_vendor = build_vendor_risk_summary(enriched_rows)
+    lpg_client = build_client_worst_risk_summary(enriched_rows)
+    alt_vendor = build_alternative_vendor_summary(enriched_rows)
+    alt_client = build_alternative_client_summary(enriched_rows)
+
     region_cards = build_region_cards(enriched_rows)
     city_summary = build_city_vendor_summary(enriched_rows, selected_city)
     city_donut = build_city_donut_data(enriched_rows, selected_city)
@@ -223,7 +240,14 @@ def refresh_top_sections(
     city_label = f"{selected_city} · Vendor Risk Breakdown" if selected_city else "Vendor Risk Breakdown"
 
     return (
-        build_kpi_cards(vendor_summary=vendor_summary, client_summary=client_summary),
+        build_kpi_section(
+            overall_vendor=overall_vendor,
+            overall_client=overall_client,
+            lpg_vendor=lpg_vendor,
+            lpg_client=lpg_client,
+            alt_vendor=alt_vendor,
+            alt_client=alt_client,
+        ),
         build_region_card_grid(region_cards=region_cards, selected_city=selected_city),
         city_label,
         build_executive_donut(donut_data=city_donut, total_vendors=city_summary["total_vendors"]),
