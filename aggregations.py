@@ -178,7 +178,7 @@ def build_client_worst_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict
     return {
         "title": "Clients with LPG",
         "value": len(clients),
-        "subtitle": "Worst LPG vendor risk mapped per client",
+        "subtitle": "Poor LPG vendor risk mapped per client",
         **counts,
     }
 
