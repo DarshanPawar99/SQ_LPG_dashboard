@@ -3,14 +3,9 @@ assets/styles.css
 
 Professional dark theme for the LPG Stock Tacker Dashboard.
 
-Improvements:
-- Donut legend styles
-- Better empty pivot state with icon and hint
-- Smoother transitions on cards
-- Pivot summary bar
-- Date label styling
-- Focus-visible outlines for accessibility
-- Refined responsive breakpoints
+KPI layout:
+- Row 1 (2 cols): Total Vendors | Total Clients
+- Row 2 (4 cols): LPG Vendors | LPG Clients | Alt Vendors | Alt Clients
 */
 
 :root {
@@ -92,7 +87,6 @@ button {
   cursor: pointer;
 }
 
-/* Focus-visible for keyboard accessibility */
 button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--border-active);
@@ -232,7 +226,6 @@ input#selected-date-input:focus {
   box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18) !important;
 }
 
-/* Dark calendar dropdown icon (Chromium) */
 .dashboard-date-input input::-webkit-calendar-picker-indicator,
 input#selected-date-input::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
@@ -240,24 +233,39 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
 }
 
 /* ---------------------------------------------------------
+   KPI Section (two rows)
+--------------------------------------------------------- */
+.kpi-section {
+  padding-left: 32px;
+  padding-right: 32px;
+  padding-top: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.kpi-card-row {
+  display: grid;
+  gap: 16px;
+}
+
+.kpi-row-overall {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.kpi-row-detail {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* ---------------------------------------------------------
    Sections
 --------------------------------------------------------- */
-.kpi-card-row,
 .region-card-grid-wrapper,
 .section-tabs-wrap,
 .executive-view-section,
 .pivot-section-wrapper {
   padding-left: 32px;
   padding-right: 32px;
-}
-
-.kpi-card-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  padding-top: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border-soft);
 }
 
 .region-card-grid-wrapper {
@@ -500,7 +508,6 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
   text-transform: uppercase;
 }
 
-/* Donut legend */
 .donut-legend {
   display: flex;
   flex-direction: column;
@@ -679,7 +686,6 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
   box-shadow: 0 0 0 1px rgba(43, 97, 255, 0.18);
 }
 
-/* Pivot summary bar */
 .pivot-summary-bar {
   margin-top: 16px;
   padding: 10px 20px;
@@ -843,6 +849,10 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
    Responsive behavior
 --------------------------------------------------------- */
 @media (max-width: 1280px) {
+  .kpi-row-detail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .region-card-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -875,7 +885,11 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
     align-items: flex-start;
   }
 
-  .kpi-card-row {
+  .kpi-row-overall {
+    grid-template-columns: 1fr;
+  }
+
+  .kpi-row-detail {
     grid-template-columns: 1fr;
   }
 
@@ -898,7 +912,7 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
   }
 
   .dashboard-header-inner,
-  .kpi-card-row,
+  .kpi-section,
   .region-card-grid-wrapper,
   .section-tabs-wrap,
   .executive-view-section,
