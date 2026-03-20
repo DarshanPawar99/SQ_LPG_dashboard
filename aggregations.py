@@ -3,13 +3,15 @@ aggregations.py
 
 Dashboard logic/summary layer.
 
-Responsible for:
-- enriching raw cleaned data with live LPG days and risk category
-- building KPI summaries
-- building region cards
-- building selected-city executive view summaries
-- building donut input data
-- building grouped client-vendor pivot rows
+KPI structure:
+- Row 1: Total Vendors (all) | Total Clients (all)
+- Row 2: Vendors with LPG (risk dots) | Clients with LPG (risk dots) |
+         Vendors with Alternative (no risk dots) | Clients with Alternative (no risk dots)
+
+"Alternative" = vendor where GAIL/PNG == Yes OR Electrical Equipment Availability == Yes
+"LPG" = all other vendors (is_alternative == False)
+
+Region cards, executive view, donut, and pivot all operate on LPG rows only.
 """
 
 from __future__ import annotations
@@ -66,11 +68,20 @@ def _worst_risk_group(rows: list[dict[str, Any]], key_field: str) -> list[dict[s
     return list(grouped.values())
 
 
+def _unique_count(rows: list[dict[str, Any]], key_field: str) -> int:
+    """Count unique non-empty values for a key field."""
+    return len({str(row.get(key_field, "")).strip() for row in rows if str(row.get(key_field, "")).strip()})
+
+
 # -------------------------------------------------------------------
-# Public functions
+# Enrich
 # -------------------------------------------------------------------
 def enrich_dashboard_rows(df: pd.DataFrame, selected_date: date) -> list[dict[str, Any]]:
-    """Convert cleaned DataFrame rows into enriched dashboard rows."""
+    """Convert cleaned DataFrame rows into enriched dashboard rows.
+
+    All rows are enriched (both LPG and alternative).
+    The is_alternative flag is preserved for downstream filtering.
+    """
     if df.empty:
         return []
 
@@ -81,6 +92,7 @@ def enrich_dashboard_rows(df: pd.DataFrame, selected_date: date) -> list[dict[st
         if last_updated is None:
             continue
 
+        is_alt = bool(row.get("is_alternative", False))
         days_of_stock = int(float(row.get("days_of_stock", 0) or 0))
         live_days = get_live_days(days_of_stock, last_updated, selected_date)
         risk = get_risk_category(live_days)
@@ -96,6 +108,7 @@ def enrich_dashboard_rows(df: pd.DataFrame, selected_date: date) -> list[dict[st
                 "last_updated": last_updated.isoformat(),
                 "continuity": str(row.get("continuity", "")).strip(),
                 "gail_png": str(row.get("gail_png", "")).strip(),
+                "is_alternative": is_alt,
                 "working_days_consumed": working_days_between(last_updated, selected_date),
                 "live_days": live_days,
                 "risk": risk,
@@ -107,42 +120,105 @@ def enrich_dashboard_rows(df: pd.DataFrame, selected_date: date) -> list[dict[st
     return rows
 
 
+# -------------------------------------------------------------------
+# Split helpers
+# -------------------------------------------------------------------
+def _lpg_rows(enriched_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [r for r in enriched_rows if not r.get("is_alternative", False)]
+
+
+def _alt_rows(enriched_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [r for r in enriched_rows if r.get("is_alternative", False)]
+
+
+# -------------------------------------------------------------------
+# KPI Row 1: Overall totals (no filtering, no risk dots)
+# -------------------------------------------------------------------
+def build_overall_vendor_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Total unique vendors across ALL rows (LPG + alternative). No risk dots."""
+    return {
+        "title": "Total Vendors",
+        "value": _unique_count(enriched_rows, "vendor"),
+        "subtitle": "All vendors including LPG & alternative",
+    }
+
+
+def build_overall_client_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Total unique clients across ALL rows (LPG + alternative). No risk dots."""
+    return {
+        "title": "Total Clients",
+        "value": _unique_count(enriched_rows, "client"),
+        "subtitle": "All clients including LPG & alternative",
+    }
+
+
+# -------------------------------------------------------------------
+# KPI Row 2: LPG (with risk dots)
+# -------------------------------------------------------------------
 def build_vendor_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Unique vendor KPI summary using worst risk per vendor."""
-    vendors = _worst_risk_group(enriched_rows, "vendor")
+    """Unique LPG vendor KPI summary with risk breakdown."""
+    lpg = _lpg_rows(enriched_rows)
+    vendors = _worst_risk_group(lpg, "vendor")
     counts = _count_by_risk(vendors)
 
     return {
-        "title": "Total Vendors",
+        "title": "Vendors with LPG",
         "value": len(vendors),
-        "subtitle": "Unique vendors across dashboard",
+        "subtitle": "Vendors without GAIL/PNG or Elec. Equipment",
         **counts,
     }
 
 
 def build_client_worst_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Unique client KPI summary using worst vendor risk per client."""
-    clients = _worst_risk_group(enriched_rows, "client")
+    """Unique LPG client KPI summary with worst vendor risk."""
+    lpg = _lpg_rows(enriched_rows)
+    clients = _worst_risk_group(lpg, "client")
     counts = _count_by_risk(clients)
 
     return {
-        "title": "Total Clients",
+        "title": "Clients with LPG",
         "value": len(clients),
-        "subtitle": "Worst vendor risk mapped per client",
+        "subtitle": "Worst LPG vendor risk mapped per client",
         **counts,
     }
 
 
+# -------------------------------------------------------------------
+# KPI Row 2: Alternative (no risk dots)
+# -------------------------------------------------------------------
+def build_alternative_vendor_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Unique alternative vendor count. No risk dots."""
+    alt = _alt_rows(enriched_rows)
+    return {
+        "title": "Vendors with Alternative",
+        "value": _unique_count(alt, "vendor"),
+        "subtitle": "GAIL/PNG or Elec. Equipment = Yes",
+    }
+
+
+def build_alternative_client_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Unique clients served by at least one alternative vendor. No risk dots."""
+    alt = _alt_rows(enriched_rows)
+    return {
+        "title": "Clients with Alternative",
+        "value": _unique_count(alt, "client"),
+        "subtitle": "Clients with at least one alternative vendor",
+    }
+
+
+# -------------------------------------------------------------------
+# Region cards (LPG only)
+# -------------------------------------------------------------------
 def build_region_cards(enriched_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Build region tiles/cards using unique vendors and worst vendor risk."""
-    if not enriched_rows:
+    lpg = _lpg_rows(enriched_rows)
+    if not lpg:
         return []
 
-    regions = sorted({str(row["region"]).strip() for row in enriched_rows if row.get("region")})
+    regions = sorted({str(row["region"]).strip() for row in lpg if row.get("region")})
     cards: list[dict[str, Any]] = []
 
     for region in regions:
-        region_rows = [row for row in enriched_rows if row.get("region") == region]
+        region_rows = [row for row in lpg if row.get("region") == region]
         vendors = _worst_risk_group(region_rows, "vendor")
         counts = _count_by_risk(vendors)
 
@@ -157,9 +233,12 @@ def build_region_cards(enriched_rows: list[dict[str, Any]]) -> list[dict[str, An
     return cards
 
 
+# -------------------------------------------------------------------
+# Executive view (LPG only)
+# -------------------------------------------------------------------
 def build_city_vendor_summary(enriched_rows: list[dict[str, Any]], selected_city: str) -> dict[str, Any]:
-    """Build executive summary for selected city using unique vendors."""
-    city_rows = [row for row in enriched_rows if row.get("region") == selected_city]
+    lpg = _lpg_rows(enriched_rows)
+    city_rows = [row for row in lpg if row.get("region") == selected_city]
     city_vendors = _worst_risk_group(city_rows, "vendor")
     counts = _count_by_risk(city_vendors)
     total_vendors = len(city_vendors)
@@ -179,7 +258,6 @@ def build_city_vendor_summary(enriched_rows: list[dict[str, Any]], selected_city
 
 
 def build_city_donut_data(enriched_rows: list[dict[str, Any]], selected_city: str) -> list[dict[str, Any]]:
-    """Donut chart input for selected city using unique vendors."""
     summary = build_city_vendor_summary(enriched_rows, selected_city)
 
     return [
@@ -190,14 +268,17 @@ def build_city_donut_data(enriched_rows: list[dict[str, Any]], selected_city: st
     ]
 
 
+# -------------------------------------------------------------------
+# Pivot (LPG only)
+# -------------------------------------------------------------------
 def build_client_pivot_groups(
     enriched_rows: list[dict[str, Any]],
     selected_city: str,
     selected_risk: str,
     search_text: str = "",
 ) -> list[dict[str, Any]]:
-    """Build grouped client-vendor pivot rows."""
-    city_rows = [row for row in enriched_rows if row.get("region") == selected_city]
+    lpg = _lpg_rows(enriched_rows)
+    city_rows = [row for row in lpg if row.get("region") == selected_city]
 
     filtered = [
         row
