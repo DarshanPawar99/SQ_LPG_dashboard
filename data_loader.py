@@ -118,13 +118,22 @@ def standardize_client_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # -------------------------------------------------------------------
+# HELPERS
+# -------------------------------------------------------------------
+def _normalize_vendor_id(series: pd.Series) -> pd.Series:
+    """Strip trailing '.0' so float-read IDs ('1.0') match int-read IDs ('1')."""
+    return series.astype("string").fillna("").str.strip().str.replace(r"\.0$", "", regex=True)
+
+
+# -------------------------------------------------------------------
 # CLEANING
 # -------------------------------------------------------------------
 def clean_vendor_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     cleaned = df.copy()
 
+    cleaned[CANONICAL_VENDOR_ID] = _normalize_vendor_id(cleaned[CANONICAL_VENDOR_ID])
+
     for col in [
-        CANONICAL_VENDOR_ID,
         CANONICAL_REGION,
         CANONICAL_VENDOR,
         CANONICAL_GAIL_PNG,
@@ -154,7 +163,9 @@ def clean_vendor_dataframe(df: pd.DataFrame) -> pd.DataFrame:
 def clean_client_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     cleaned = df.copy()
 
-    for col in [CANONICAL_VENDOR_ID, CANONICAL_VENDOR, CANONICAL_CLIENT]:
+    cleaned[CANONICAL_VENDOR_ID] = _normalize_vendor_id(cleaned[CANONICAL_VENDOR_ID])
+
+    for col in [CANONICAL_VENDOR, CANONICAL_CLIENT]:
         cleaned[col] = cleaned[col].astype("string").fillna("").str.strip()
 
     cleaned[CANONICAL_PAX] = pd.to_numeric(
