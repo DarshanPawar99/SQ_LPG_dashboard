@@ -385,13 +385,24 @@ def build_executive_cards(city_summary: dict[str, Any], selected_risk: str) -> l
 # -------------------------------------------------------------------
 # Empty pivot state
 # -------------------------------------------------------------------
-def build_empty_pivot_state() -> html.Div:
+def build_empty_pivot_state(search_text: str = "") -> html.Div:
     return html.Div(
         className="pivot-empty-state",
         children=[
+            dcc.Input(
+                id={"type": "pivot-search-input", "index": "main"},
+                value=search_text,
+                type="text",
+                placeholder="Search client or vendor across all categories…",
+                className="pivot-search-input pivot-empty-search",
+                debounce=True,
+            ),
             html.Div("⬆", className="pivot-empty-icon"),
             html.Div(EMPTY_PIVOT_MESSAGE, className="pivot-empty-title"),
-            html.Div("Click one of the risk cards above to see client–vendor detail", className="pivot-empty-hint"),
+            html.Div(
+                "Select a risk card to filter, or search above to see all vendors",
+                className="pivot-empty-hint",
+            ),
         ],
     )
 
@@ -474,13 +485,24 @@ def build_alt_type_cards(type_summary: dict[str, Any], selected_type: str) -> li
 # -------------------------------------------------------------------
 # Alternative coverage: empty pivot state
 # -------------------------------------------------------------------
-def build_alt_empty_pivot_state() -> html.Div:
+def build_alt_empty_pivot_state(search_text: str = "") -> html.Div:
     return html.Div(
         className="pivot-empty-state",
         children=[
+            dcc.Input(
+                id={"type": "alt-search-input", "index": "main"},
+                value=search_text,
+                type="text",
+                placeholder="Search client or vendor across all coverage types…",
+                className="pivot-search-input pivot-empty-search",
+                debounce=True,
+            ),
             html.Div("⬆", className="pivot-empty-icon"),
             html.Div("Select a coverage type above to expand the vendor detail", className="pivot-empty-title"),
-            html.Div("Click GAIL/PNG, Electrical Equipment, or Both to filter", className="pivot-empty-hint"),
+            html.Div(
+                "Select a coverage type to filter, or search above to see all alt vendors",
+                className="pivot-empty-hint",
+            ),
         ],
     )
 
@@ -583,9 +605,9 @@ def build_alt_pivot_table(
                                 [
                                     "Showing ",
                                     html.Span(
-                                        ALT_TYPE_SHORT_NAMES.get(selected_type, selected_type),
+                                        ALT_TYPE_SHORT_NAMES.get(selected_type, selected_type) if selected_type else "All Coverage Types",
                                         className="pivot-selected-risk-text",
-                                        style={"color": type_color},
+                                        style={"color": type_color if selected_type else "#77a5ff"},
                                     ),
                                     " vendors. One vendor can serve multiple clients.",
                                 ],
@@ -721,8 +743,11 @@ def build_city_pivot_table(
                             html.Div(
                                 [
                                     "Showing ",
-                                    html.Span(selected_risk, className="pivot-selected-risk-text",
-                                              style={"color": RISK_COLORS.get(selected_risk, "#e2e8f0")}),
+                                    html.Span(
+                                        selected_risk if selected_risk else "All Categories",
+                                        className="pivot-selected-risk-text",
+                                        style={"color": RISK_COLORS.get(selected_risk, "#77a5ff")},
+                                    ),
                                     " vendors. One client can have multiple vendors.",
                                 ],
                                 className="pivot-section-subtitle",
