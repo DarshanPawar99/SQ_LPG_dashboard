@@ -486,7 +486,7 @@ def build_alt_empty_pivot_state() -> html.Div:
 
 
 # -------------------------------------------------------------------
-# Alternative coverage: vendor pivot table
+# Alternative coverage: vendor pivot table (grouped by vendor)
 # -------------------------------------------------------------------
 def build_alt_pivot_table(
     selected_city: str,
@@ -495,31 +495,38 @@ def build_alt_pivot_table(
     search_text: str = "",
 ) -> html.Div:
     table_rows: list[html.Tr] = []
-    total_vendor_rows = sum(g.get("vendor_count", 0) for g in pivot_groups)
+    total_client_rows = sum(g.get("client_count", 0) for g in pivot_groups)
     total_pax_all = sum(g.get("total_pax", 0) for g in pivot_groups)
 
     for group in pivot_groups:
-        client = str(group.get("client", ""))
+        vendor = str(group.get("vendor", ""))
         rows = group.get("rows", [])
         total_pax = group.get("total_pax", 0)
-        vendor_count = group.get("vendor_count", len(rows))
+        client_count = group.get("client_count", len(rows))
+        alt_type = str(group.get("alt_type", ""))
+        type_color = ALT_TYPE_COLORS.get(alt_type, "#334155")
 
         table_rows.append(
             html.Tr(
                 className="pivot-group-row",
                 children=[
                     html.Td(
-                        colSpan=6,
+                        colSpan=4,
                         className="pivot-group-cell",
                         children=html.Div(
                             className="pivot-group-header",
                             children=[
                                 html.Div(className="pivot-group-title-wrap", children=[
                                     html.Span("▸", className="pivot-group-arrow"),
-                                    html.Span(client, className="pivot-group-title"),
+                                    html.Span(vendor, className="pivot-group-title"),
+                                    html.Span(
+                                        alt_type,
+                                        className="alt-type-pill",
+                                        style={"backgroundColor": type_color, "marginLeft": "10px"},
+                                    ),
                                 ]),
                                 html.Div(className="pivot-group-badges", children=[
-                                    html.Span(f"{_format_number(vendor_count)} vendors", className="pivot-badge"),
+                                    html.Span(f"{_format_number(client_count)} clients", className="pivot-badge"),
                                     html.Span(f"{_format_number(total_pax)} pax", className="pivot-badge"),
                                 ]),
                             ],
@@ -529,22 +536,22 @@ def build_alt_pivot_table(
             )
         )
 
-        for idx, row in enumerate(rows):
-            alt_type = str(row.get("alt_type", ""))
-            type_color = ALT_TYPE_COLORS.get(alt_type, "#334155")
+        for row in rows:
+            live_days = row.get("live_days", 0)
+            risk = str(row.get("risk", ""))
+            live_days_color = RISK_COLORS.get(risk, "#e2e8f0")
             table_rows.append(
                 html.Tr(
                     className="pivot-data-row",
                     children=[
-                        html.Td(client if idx == 0 else "", className="pivot-cell pivot-cell-dim"),
-                        html.Td(str(row.get("vendor", "")), className="pivot-cell pivot-cell-strong"),
-                        html.Td(_format_number(row.get("live_days", 0)), className="pivot-cell"),
+                        html.Td(str(row.get("client", "")), className="pivot-cell pivot-cell-strong"),
+                        html.Td(
+                            _format_number(live_days),
+                            className="pivot-cell",
+                            style={"color": live_days_color, "fontWeight": "700"},
+                        ),
                         html.Td(str(row.get("last_updated", "")), className="pivot-cell pivot-cell-dim"),
                         html.Td(_format_number(row.get("pax", 0)), className="pivot-cell"),
-                        html.Td(
-                            html.Span(alt_type, className="alt-type-pill", style={"backgroundColor": type_color}),
-                            className="pivot-cell",
-                        ),
                     ],
                 )
             )
@@ -552,12 +559,12 @@ def build_alt_pivot_table(
     if not table_rows:
         table_rows.append(
             html.Tr(children=[
-                html.Td("No records found for the selected filters.", colSpan=6, className="pivot-no-records")
+                html.Td("No records found for the selected filters.", colSpan=4, className="pivot-no-records")
             ])
         )
 
     summary_text = (
-        f"{len(pivot_groups)} clients · {_format_number(total_vendor_rows)} vendor rows · "
+        f"{len(pivot_groups)} vendors · {_format_number(total_client_rows)} client rows · "
         f"{_format_number(total_pax_all)} total pax"
     )
     type_color = ALT_TYPE_COLORS.get(selected_type, "#77a5ff")
@@ -580,7 +587,7 @@ def build_alt_pivot_table(
                                         className="pivot-selected-risk-text",
                                         style={"color": type_color},
                                     ),
-                                    " vendors. One client can have multiple vendors.",
+                                    " vendors. One vendor can serve multiple clients.",
                                 ],
                                 className="pivot-section-subtitle",
                             ),
@@ -611,11 +618,9 @@ def build_alt_pivot_table(
                             html.Thead(
                                 html.Tr(children=[
                                     html.Th("Client", className="pivot-th"),
-                                    html.Th("Vendor", className="pivot-th"),
                                     html.Th("Live LPG Days", className="pivot-th"),
                                     html.Th("Last Updated", className="pivot-th"),
                                     html.Th("PAX", className="pivot-th"),
-                                    html.Th("Coverage Type", className="pivot-th"),
                                 ])
                             ),
                             html.Tbody(table_rows),
