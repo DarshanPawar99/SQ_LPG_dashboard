@@ -78,6 +78,34 @@ RISK_SUBTITLES = {
 
 
 # -------------------------------------------------------------------
+# ALTERNATIVE COVERAGE TYPES
+# -------------------------------------------------------------------
+ALT_TYPE_COLORS = {
+    "GAIL/PNG at Vendor": "#3b82f6",
+    "Electrical Equipment Availability": "#a855f7",
+    "Both": "#06b6d4",
+}
+
+ALT_TYPE_SHORT_NAMES = {
+    "GAIL/PNG at Vendor": "GAIL / PNG",
+    "Electrical Equipment Availability": "Elec. Equipment",
+    "Both": "Both",
+}
+
+ALT_TYPE_SUBTITLES = {
+    "GAIL/PNG at Vendor": "Gas Pipeline Available",
+    "Electrical Equipment Availability": "Elec. Backup Available",
+    "Both": "Full Backup Coverage",
+}
+
+ALT_TYPE_DISPLAY_ORDER = [
+    "GAIL/PNG at Vendor",
+    "Electrical Equipment Availability",
+    "Both",
+]
+
+
+# -------------------------------------------------------------------
 # BUSINESS RULES
 # -------------------------------------------------------------------
 EXCLUDED_GAIL_PNG_VALUES = {"yes"}

@@ -21,7 +21,7 @@ from typing import Any
 
 import pandas as pd
 
-from config import RISK_COLORS, RISK_LEVELS
+from config import ALT_TYPE_COLORS, RISK_COLORS, RISK_LEVELS
 from stock_logic import (
     as_date,
     get_live_days,
@@ -302,6 +302,140 @@ def build_client_pivot_groups(
             str(row.get("vendor", "")),
         )
     )
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in filtered:
+        client = str(row.get("client", "")).strip()
+        grouped.setdefault(client, []).append(row)
+
+    output: list[dict[str, Any]] = []
+    for client, rows in grouped.items():
+        output.append(
+            {
+                "client": client,
+                "rows": rows,
+                "total_pax": sum(float(r.get("pax", 0) or 0) for r in rows),
+                "vendor_count": len(rows),
+            }
+        )
+
+    return output
+
+
+# -------------------------------------------------------------------
+# Alternative coverage helpers
+# -------------------------------------------------------------------
+def _get_alt_type(row: dict[str, Any]) -> str:
+    """Classify an alternative vendor row into GAIL/PNG, Electrical, or Both."""
+    has_gail = str(row.get("gail_png", "")).strip().lower() == "yes"
+    has_elec = str(row.get("continuity", "")).strip().lower() == "yes"
+    if has_gail and has_elec:
+        return "Both"
+    if has_gail:
+        return "GAIL/PNG at Vendor"
+    return "Electrical Equipment Availability"
+
+
+def _count_by_alt_type(rows: list[dict[str, Any]]) -> dict[str, int]:
+    return {
+        "gail": sum(1 for r in rows if _get_alt_type(r) == "GAIL/PNG at Vendor"),
+        "elec": sum(1 for r in rows if _get_alt_type(r) == "Electrical Equipment Availability"),
+        "both": sum(1 for r in rows if _get_alt_type(r) == "Both"),
+    }
+
+
+def _unique_alt_vendors(alt_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One representative row per vendor name (preserves first occurrence)."""
+    seen: dict[str, dict[str, Any]] = {}
+    for r in alt_rows:
+        v = str(r.get("vendor", "")).strip()
+        if v and v not in seen:
+            seen[v] = r
+    return list(seen.values())
+
+
+# -------------------------------------------------------------------
+# Alternative coverage: city cards
+# -------------------------------------------------------------------
+def build_alt_city_cards(enriched_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """City cards for alternative vendors with GAIL/Elec/Both breakdown."""
+    alt = _alt_rows(enriched_rows)
+    regions = sorted({str(r["region"]).strip() for r in alt if r.get("region")})
+    cards: list[dict[str, Any]] = []
+
+    for region in regions:
+        region_rows = [r for r in alt if r.get("region") == region]
+        unique_vendors = _unique_alt_vendors(region_rows)
+        counts = _count_by_alt_type(unique_vendors)
+        cards.append(
+            {
+                "region": region,
+                "total_vendors": len(unique_vendors),
+                **counts,
+            }
+        )
+
+    return cards
+
+
+# -------------------------------------------------------------------
+# Alternative coverage: executive view
+# -------------------------------------------------------------------
+def build_alt_type_summary(enriched_rows: list[dict[str, Any]], selected_city: str) -> dict[str, Any]:
+    """Summary of alt vendor coverage types for a given city."""
+    alt = _alt_rows(enriched_rows)
+    city_rows = [r for r in alt if r.get("region") == selected_city]
+    unique_vendors = _unique_alt_vendors(city_rows)
+    counts = _count_by_alt_type(unique_vendors)
+    total = len(unique_vendors)
+
+    return {
+        "city": selected_city,
+        "total_vendors": total,
+        "gail": counts["gail"],
+        "elec": counts["elec"],
+        "both": counts["both"],
+        "gail_pct": round((counts["gail"] / total) * 100) if total else 0,
+        "elec_pct": round((counts["elec"] / total) * 100) if total else 0,
+        "both_pct": round((counts["both"] / total) * 100) if total else 0,
+    }
+
+
+def build_alt_donut_data(enriched_rows: list[dict[str, Any]], selected_city: str) -> list[dict[str, Any]]:
+    summary = build_alt_type_summary(enriched_rows, selected_city)
+    return [
+        {"name": "GAIL / PNG", "value": summary["gail"], "color": ALT_TYPE_COLORS["GAIL/PNG at Vendor"]},
+        {"name": "Elec. Equipment", "value": summary["elec"], "color": ALT_TYPE_COLORS["Electrical Equipment Availability"]},
+        {"name": "Both", "value": summary["both"], "color": ALT_TYPE_COLORS["Both"]},
+    ]
+
+
+# -------------------------------------------------------------------
+# Alternative coverage: pivot groups
+# -------------------------------------------------------------------
+def build_alt_pivot_groups(
+    enriched_rows: list[dict[str, Any]],
+    selected_city: str,
+    selected_type: str = "",
+    search_text: str = "",
+) -> list[dict[str, Any]]:
+    alt = _alt_rows(enriched_rows)
+    city_rows = [r for r in alt if r.get("region") == selected_city]
+
+    # Enrich each row with its coverage type
+    enriched = [{**r, "alt_type": _get_alt_type(r)} for r in city_rows]
+
+    filtered = [r for r in enriched if not selected_type or r.get("alt_type") == selected_type]
+
+    if search_text:
+        needle = search_text.strip().lower()
+        filtered = [
+            r for r in filtered
+            if needle in str(r.get("client", "")).lower()
+            or needle in str(r.get("vendor", "")).lower()
+        ]
+
+    filtered.sort(key=lambda r: (str(r.get("client", "")), str(r.get("vendor", ""))))
 
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row in filtered:
