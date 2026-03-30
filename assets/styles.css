@@ -849,6 +849,58 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
 }
 
 /* ---------------------------------------------------------
+   Alt-type pill (coverage type badge in alt pivot table)
+--------------------------------------------------------- */
+.alt-type-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  color: var(--text-strong);
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.92;
+}
+
+/* ---------------------------------------------------------
+   Clickable alt-vendor KPI card button
+--------------------------------------------------------- */
+.kpi-card-btn {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-card);
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--transition-normal),
+    box-shadow var(--transition-normal),
+    background var(--transition-normal);
+}
+
+.kpi-card-btn:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.18);
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.kpi-card-btn-active {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25) !important;
+  background: rgba(59, 130, 246, 0.06) !important;
+}
+
+/* ---------------------------------------------------------
+   Alt type cards — 3-column grid (overrides 4-column base)
+--------------------------------------------------------- */
+#alt-type-cards-container {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* ---------------------------------------------------------
    Responsive behavior
 --------------------------------------------------------- */
 @media (max-width: 1280px) {
@@ -879,6 +931,10 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
   .executive-cards-container {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  #alt-type-cards-container {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 980px) {
@@ -900,7 +956,8 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .executive-cards-container {
+  .executive-cards-container,
+  #alt-type-cards-container {
     grid-template-columns: 1fr;
   }
 

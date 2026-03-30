@@ -18,6 +18,9 @@ import plotly.graph_objects as go
 from dash import dcc, html
 
 from config import (
+    ALT_TYPE_COLORS,
+    ALT_TYPE_SHORT_NAMES,
+    ALT_TYPE_SUBTITLES,
     EMPTY_PIVOT_MESSAGE,
     MAX_SELECTABLE_DATE,
     MIN_SELECTABLE_DATE,
@@ -153,6 +156,28 @@ def _build_kpi_card_plain(summary: dict[str, Any], accent_color: str = "") -> ht
     return html.Div(className="kpi-card", children=children)
 
 
+def _build_kpi_card_alt_vendor(summary: dict[str, Any], is_active: bool = False) -> html.Button:
+    """Clickable KPI card for Vendors with Alternative — toggles the alt coverage view."""
+    cls = "kpi-card kpi-card-btn"
+    if is_active:
+        cls += " kpi-card-btn-active"
+    return html.Button(
+        id="alt-vendor-kpi-card",
+        n_clicks=0,
+        className=cls,
+        title="Click to explore alternative vendor coverage",
+        children=[
+            html.Div(str(summary.get("title", "")), className="kpi-label"),
+            html.Div(
+                _format_number(summary.get("value", 0)),
+                className="kpi-value",
+                style={"color": ALT_TYPE_COLORS["GAIL/PNG at Vendor"]},
+            ),
+            html.Div(str(summary.get("subtitle", "")), className="kpi-subtitle"),
+        ],
+    )
+
+
 def build_kpi_section(
     overall_vendor: dict[str, Any],
     overall_client: dict[str, Any],
@@ -160,6 +185,7 @@ def build_kpi_section(
     lpg_client: dict[str, Any],
     alt_vendor: dict[str, Any],
     alt_client: dict[str, Any],
+    alt_view_open: bool = False,
 ) -> html.Div:
     """
     Build the full KPI section with two rows:
@@ -183,7 +209,7 @@ def build_kpi_section(
                 children=[
                     _build_kpi_card_with_risk(lpg_vendor),
                     _build_kpi_card_with_risk(lpg_client),
-                    _build_kpi_card_plain(alt_vendor, accent_color="#77a5ff"),
+                    _build_kpi_card_alt_vendor(alt_vendor, is_active=alt_view_open),
                     _build_kpi_card_plain(alt_client, accent_color="#77a5ff"),
                 ],
             ),
@@ -373,6 +399,234 @@ def build_empty_pivot_state() -> html.Div:
 # -------------------------------------------------------------------
 # Pivot table section
 # -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Alternative coverage: city cards
+# -------------------------------------------------------------------
+def build_alt_city_card_grid(alt_city_cards: list[dict[str, Any]], selected_city: str) -> html.Div:
+    if not alt_city_cards:
+        return html.Div(
+            className="region-card-grid",
+            children=[html.Div("No alternative vendor regions available", className="pivot-no-records")],
+        )
+
+    return html.Div(
+        className="region-card-grid",
+        children=[
+            html.Button(
+                id={"type": "alt-city-card", "index": str(card["region"])},
+                n_clicks=0,
+                className="region-card region-card-active" if card["region"] == selected_city else "region-card",
+                title=f"Filter by {card['region']}",
+                **{"aria-label": f"Select region {card['region']}, {card.get('total_vendors', 0)} alt vendors"},
+                children=[
+                    html.Div(str(card["region"]), className="region-card-title"),
+                    html.Div(f"{_format_number(card.get('total_vendors', 0))} alt vendors", className="region-card-subtitle"),
+                    html.Div(
+                        className="region-card-risk-row",
+                        children=[
+                            _count_dot(ALT_TYPE_COLORS["GAIL/PNG at Vendor"], int(card.get("gail", 0)), "GAIL/PNG at Vendor"),
+                            _count_dot(ALT_TYPE_COLORS["Electrical Equipment Availability"], int(card.get("elec", 0)), "Electrical Equipment"),
+                            _count_dot(ALT_TYPE_COLORS["Both"], int(card.get("both", 0)), "Both"),
+                        ],
+                    ),
+                ],
+            )
+            for card in alt_city_cards
+        ],
+    )
+
+
+# -------------------------------------------------------------------
+# Alternative coverage: type cards (GAIL / Elec / Both)
+# -------------------------------------------------------------------
+def build_alt_type_cards(type_summary: dict[str, Any], selected_type: str) -> list[html.Button]:
+    card_meta = [
+        {"key": "GAIL/PNG at Vendor", "value": type_summary.get("gail", 0), "pct": type_summary.get("gail_pct", 0)},
+        {"key": "Electrical Equipment Availability", "value": type_summary.get("elec", 0), "pct": type_summary.get("elec_pct", 0)},
+        {"key": "Both", "value": type_summary.get("both", 0), "pct": type_summary.get("both_pct", 0)},
+    ]
+
+    cards: list[html.Button] = []
+    for item in card_meta:
+        key = item["key"]
+        active = selected_type == key
+        short_name = ALT_TYPE_SHORT_NAMES.get(key, key)
+        subtitle = ALT_TYPE_SUBTITLES.get(key, "")
+        color = ALT_TYPE_COLORS[key]
+        cards.append(
+            html.Button(
+                id={"type": "alt-type-card", "index": key},
+                n_clicks=0,
+                className="executive-risk-card executive-risk-card-active" if active else "executive-risk-card",
+                title=f"Filter by {key}",
+                children=[
+                    html.Div(_format_number(item["value"]), className="executive-risk-value", style={"color": color}),
+                    html.Div(short_name, className="executive-risk-title"),
+                    html.Div(f"{_format_number(item['pct'])}% · {subtitle}", className="executive-risk-subtitle"),
+                    html.Div(className="executive-risk-underline", style={"backgroundColor": color}),
+                ],
+            )
+        )
+
+    return cards
+
+
+# -------------------------------------------------------------------
+# Alternative coverage: empty pivot state
+# -------------------------------------------------------------------
+def build_alt_empty_pivot_state() -> html.Div:
+    return html.Div(
+        className="pivot-empty-state",
+        children=[
+            html.Div("⬆", className="pivot-empty-icon"),
+            html.Div("Select a coverage type above to expand the vendor detail", className="pivot-empty-title"),
+            html.Div("Click GAIL/PNG, Electrical Equipment, or Both to filter", className="pivot-empty-hint"),
+        ],
+    )
+
+
+# -------------------------------------------------------------------
+# Alternative coverage: vendor pivot table
+# -------------------------------------------------------------------
+def build_alt_pivot_table(
+    selected_city: str,
+    selected_type: str,
+    pivot_groups: list[dict[str, Any]],
+    search_text: str = "",
+) -> html.Div:
+    table_rows: list[html.Tr] = []
+    total_vendor_rows = sum(g.get("vendor_count", 0) for g in pivot_groups)
+    total_pax_all = sum(g.get("total_pax", 0) for g in pivot_groups)
+
+    for group in pivot_groups:
+        client = str(group.get("client", ""))
+        rows = group.get("rows", [])
+        total_pax = group.get("total_pax", 0)
+        vendor_count = group.get("vendor_count", len(rows))
+
+        table_rows.append(
+            html.Tr(
+                className="pivot-group-row",
+                children=[
+                    html.Td(
+                        colSpan=6,
+                        className="pivot-group-cell",
+                        children=html.Div(
+                            className="pivot-group-header",
+                            children=[
+                                html.Div(className="pivot-group-title-wrap", children=[
+                                    html.Span("▸", className="pivot-group-arrow"),
+                                    html.Span(client, className="pivot-group-title"),
+                                ]),
+                                html.Div(className="pivot-group-badges", children=[
+                                    html.Span(f"{_format_number(vendor_count)} vendors", className="pivot-badge"),
+                                    html.Span(f"{_format_number(total_pax)} pax", className="pivot-badge"),
+                                ]),
+                            ],
+                        ),
+                    )
+                ],
+            )
+        )
+
+        for idx, row in enumerate(rows):
+            alt_type = str(row.get("alt_type", ""))
+            type_color = ALT_TYPE_COLORS.get(alt_type, "#334155")
+            table_rows.append(
+                html.Tr(
+                    className="pivot-data-row",
+                    children=[
+                        html.Td(client if idx == 0 else "", className="pivot-cell pivot-cell-dim"),
+                        html.Td(str(row.get("vendor", "")), className="pivot-cell pivot-cell-strong"),
+                        html.Td(_format_number(row.get("live_days", 0)), className="pivot-cell"),
+                        html.Td(str(row.get("last_updated", "")), className="pivot-cell pivot-cell-dim"),
+                        html.Td(_format_number(row.get("pax", 0)), className="pivot-cell"),
+                        html.Td(
+                            html.Span(alt_type, className="alt-type-pill", style={"backgroundColor": type_color}),
+                            className="pivot-cell",
+                        ),
+                    ],
+                )
+            )
+
+    if not table_rows:
+        table_rows.append(
+            html.Tr(children=[
+                html.Td("No records found for the selected filters.", colSpan=6, className="pivot-no-records")
+            ])
+        )
+
+    summary_text = (
+        f"{len(pivot_groups)} clients · {_format_number(total_vendor_rows)} vendor rows · "
+        f"{_format_number(total_pax_all)} total pax"
+    )
+    type_color = ALT_TYPE_COLORS.get(selected_type, "#77a5ff")
+
+    return html.Div(
+        className="pivot-section",
+        children=[
+            html.Div(
+                className="pivot-section-header",
+                children=[
+                    html.Div(
+                        className="pivot-section-title-wrap",
+                        children=[
+                            html.Div(f"{selected_city} · Alternative Vendor Detail", className="pivot-section-title"),
+                            html.Div(
+                                [
+                                    "Showing ",
+                                    html.Span(
+                                        ALT_TYPE_SHORT_NAMES.get(selected_type, selected_type),
+                                        className="pivot-selected-risk-text",
+                                        style={"color": type_color},
+                                    ),
+                                    " vendors. One client can have multiple vendors.",
+                                ],
+                                className="pivot-section-subtitle",
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        className="pivot-search-wrap",
+                        children=[
+                            dcc.Input(
+                                id={"type": "alt-search-input", "index": "main"},
+                                value=search_text,
+                                type="text",
+                                placeholder="Search client or vendor…",
+                                className="pivot-search-input",
+                                debounce=True,
+                            )
+                        ],
+                    ),
+                ],
+            ),
+            html.Div(className="pivot-summary-bar", children=summary_text),
+            html.Div(
+                className="pivot-table-wrap",
+                children=[
+                    html.Table(
+                        className="pivot-table",
+                        children=[
+                            html.Thead(
+                                html.Tr(children=[
+                                    html.Th("Client", className="pivot-th"),
+                                    html.Th("Vendor", className="pivot-th"),
+                                    html.Th("Live LPG Days", className="pivot-th"),
+                                    html.Th("Last Updated", className="pivot-th"),
+                                    html.Th("PAX", className="pivot-th"),
+                                    html.Th("Coverage Type", className="pivot-th"),
+                                ])
+                            ),
+                            html.Tbody(table_rows),
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
+
+
 def build_city_pivot_table(
     selected_city: str,
     selected_risk: str,
