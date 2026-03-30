@@ -435,22 +435,21 @@ def build_alt_pivot_groups(
             or needle in str(r.get("vendor", "")).lower()
         ]
 
-    filtered.sort(key=lambda r: (str(r.get("vendor", "")), str(r.get("client", ""))))
+    filtered.sort(key=lambda r: (str(r.get("client", "")), str(r.get("vendor", ""))))
 
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row in filtered:
-        vendor = str(row.get("vendor", "")).strip()
-        grouped.setdefault(vendor, []).append(row)
+        client = str(row.get("client", "")).strip()
+        grouped.setdefault(client, []).append(row)
 
     output: list[dict[str, Any]] = []
-    for vendor, rows in grouped.items():
+    for client, rows in grouped.items():
         output.append(
             {
-                "vendor": vendor,
+                "client": client,
                 "rows": rows,
                 "total_pax": sum(float(r.get("pax", 0) or 0) for r in rows),
-                "client_count": len(rows),
-                "alt_type": rows[0].get("alt_type", "") if rows else "",
+                "vendor_count": len(rows),
             }
         )
 
