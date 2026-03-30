@@ -79,16 +79,16 @@ def get_risk_category(live_days: int) -> str:
     Map live LPG days to risk category.
 
     Rules:
-    - 0 -> Out of Stock
-    - 1 to 2 -> Critical
-    - 3 to 4 -> Moderate
-    - 5+ -> Safe
+    - 0 to 3 -> Out of Stock
+    - 4 to 5 -> Critical
+    - 6 to 7 -> Moderate
+    - 8+ -> Safe
     """
-    if live_days == 0:
+    if live_days <= 3:
         return "Out of Stock"
-    if live_days <= 2:
+    if live_days <= 5:
         return "Critical"
-    if live_days <= 4:
+    if live_days <= 7:
         return "Moderate"
     return "Safe"
 
