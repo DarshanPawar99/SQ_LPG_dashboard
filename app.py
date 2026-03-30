@@ -437,8 +437,8 @@ def refresh_pivot_section(
     selected_risk: str,
     search_text: str,
 ):
-    if not selected_risk:
-        return build_empty_pivot_state()
+    if not selected_risk and not search_text:
+        return build_empty_pivot_state(search_text)
 
     pivot_groups = build_client_pivot_groups(
         enriched_rows=enriched_rows,
@@ -651,8 +651,8 @@ def refresh_alt_pivot(
     selected_type: str,
     search_text: str,
 ):
-    if not selected_type:
-        return build_alt_empty_pivot_state()
+    if not selected_type and not search_text:
+        return build_alt_empty_pivot_state(search_text)
 
     pivot_groups = build_alt_pivot_groups(
         enriched_rows=enriched_rows,

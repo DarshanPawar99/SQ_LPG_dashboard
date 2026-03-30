@@ -610,6 +610,12 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
   text-align: center;
 }
 
+.pivot-empty-search {
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 24px;
+}
+
 .pivot-empty-icon {
   font-size: 28px;
   margin-bottom: 12px;
