@@ -70,10 +70,10 @@ RISK_DISPLAY_ORDER = [
 ]
 
 RISK_SUBTITLES = {
-    "Out of Stock": "Immediate Action",
-    "Critical": "1–2 Live Days",
-    "Moderate": "3–4 Live Days",
-    "Safe": "5+ Live Days",
+    "Out of Stock": "0–3 Live Days",
+    "Critical": "4–5 Live Days",
+    "Moderate": "6–7 Live Days",
+    "Safe": "8+ Live Days",
 }
 
 
