@@ -30,7 +30,7 @@ CLIENT_SHEET_NAME = "Master Client Data"
 # -------------------------------------------------------------------
 # DEFAULT UI STATE
 # -------------------------------------------------------------------
-DEFAULT_SELECTED_DATE = date(2026, 3, 17)
+DEFAULT_SELECTED_DATE = date.today()
 MIN_SELECTABLE_DATE = date(2025, 1, 1)
 MAX_SELECTABLE_DATE = date(2027, 12, 31)
 DEFAULT_SELECTED_RISK = ""
