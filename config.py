@@ -81,9 +81,9 @@ RISK_SUBTITLES = {
 # ALTERNATIVE COVERAGE TYPES
 # -------------------------------------------------------------------
 ALT_TYPE_COLORS = {
-    "GAIL/PNG at Vendor": "#3b82f6",
-    "Electrical Equipment Availability": "#a855f7",
-    "Both": "#06b6d4",
+    "GAIL/PNG at Vendor": "#f97316",
+    "Electrical Equipment Availability": "#06b6d4",
+    "Both": "#22c55e",
 }
 
 ALT_TYPE_SHORT_NAMES = {
