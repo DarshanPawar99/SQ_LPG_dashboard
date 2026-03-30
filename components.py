@@ -171,7 +171,7 @@ def _build_kpi_card_alt_vendor(summary: dict[str, Any], is_active: bool = False)
             html.Div(
                 _format_number(summary.get("value", 0)),
                 className="kpi-value",
-                style={"color": ALT_TYPE_COLORS["GAIL/PNG at Vendor"]},
+                style={"color": "#4ade80"},
             ),
             html.Div(str(summary.get("subtitle", "")), className="kpi-subtitle"),
         ],
