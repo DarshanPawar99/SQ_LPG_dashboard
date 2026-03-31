@@ -146,7 +146,7 @@ def build_overall_vendor_summary(enriched_rows: list[dict[str, Any]]) -> dict[st
 def build_overall_client_summary(enriched_rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Total unique clients across ALL rows (LPG + alternative). No risk dots."""
     return {
-        "title": "Total Clients",
+        "title": "Total Cafeteria's",
         "value": _unique_count(enriched_rows, "client"),
         "subtitle": "All clients including LPG & alternative",
     }
@@ -176,7 +176,7 @@ def build_client_worst_risk_summary(enriched_rows: list[dict[str, Any]]) -> dict
     counts = _count_by_risk(clients)
 
     return {
-        "title": "Clients with LPG",
+        "title": "Counter's Under only LPG",
         "value": len(clients),
         "subtitle": "Poor LPG vendor risk mapped per client",
         **counts,
@@ -200,7 +200,7 @@ def build_alternative_client_summary(enriched_rows: list[dict[str, Any]]) -> dic
     """Unique clients served by at least one alternative vendor. No risk dots."""
     alt = _alt_rows(enriched_rows)
     return {
-        "title": "Clients with Alternative",
+        "title": "Counter's Under Alternative Source",
         "value": _unique_count(alt, "client"),
         "subtitle": "Clients with at least one alternative vendor",
     }
