@@ -1,5 +1,5 @@
 """
-Main Dash application for the LPG Stock Tacker Dashboard.
+Main Dash application for the LPG Stock Tracker Dashboard.
 
 KPI layout:
 - Row 1: Total Vendors | Total Clients (all, no risk dots)

@@ -1,7 +1,7 @@
 """
 components.py
 
-Reusable Dash UI builders for the LPG Stock Tacker Dashboard.
+Reusable Dash UI builders for the LPG Stock Tracker Dashboard.
 
 KPI layout:
 - Row 1 (2 cols): Total Vendors | Total Clients (overall, no risk dots)
