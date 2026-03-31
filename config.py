@@ -1,7 +1,7 @@
 """
 config.py
 
-Central configuration for the LPG Stock Tacker Dashboard.
+Central configuration for the LPG Stock Tracker Dashboard.
 Single source of truth for all constants.
 """
 
@@ -14,7 +14,7 @@ from pathlib import Path
 # -------------------------------------------------------------------
 # APP
 # -------------------------------------------------------------------
-APP_TITLE = "LPG Stock Tacker Dashboard"
+APP_TITLE = "LPG Stock Tracker Dashboard"
 APP_SUBTITLE = "Live stock risk, client exposure, and vendor continuity preview"
 APP_DEBUG = True
 
