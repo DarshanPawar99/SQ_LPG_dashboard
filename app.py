@@ -98,8 +98,6 @@ def get_alt_city_options(enriched_rows: list[dict[str, Any]]) -> list[str]:
 initial_rows = enrich_dashboard_rows(RAW_DF, DEFAULT_SELECTED_DATE)
 initial_cities = get_city_options(initial_rows)
 initial_city = initial_cities[0] if initial_cities else ""
-initial_alt_cities = get_alt_city_options(initial_rows)
-initial_alt_city = initial_alt_cities[0] if initial_alt_cities else ""
 
 initial_overall_vendor = build_overall_vendor_summary(initial_rows)
 initial_overall_client = build_overall_client_summary(initial_rows)
@@ -111,8 +109,8 @@ initial_region_cards = build_region_cards(initial_rows)
 initial_city_summary = build_city_vendor_summary(initial_rows, initial_city)
 initial_city_donut = build_city_donut_data(initial_rows, initial_city)
 initial_alt_city_cards = build_alt_city_cards(initial_rows)
-initial_alt_type_summary = build_alt_type_summary(initial_rows, initial_alt_city)
-initial_alt_donut = build_alt_donut_data(initial_rows, initial_alt_city)
+initial_alt_type_summary = build_alt_type_summary(initial_rows, initial_city)
+initial_alt_donut = build_alt_donut_data(initial_rows, initial_city)
 
 
 app.layout = html.Div(
@@ -126,7 +124,6 @@ app.layout = html.Div(
         dcc.Store(id="store-city-options", data=initial_cities),
         # ---- stores: alt view ----
         dcc.Store(id="store-alt-view-open", data=False),
-        dcc.Store(id="store-alt-selected-city", data=initial_alt_city),
         dcc.Store(id="store-alt-selected-type", data=""),
         dcc.Store(id="store-alt-search", data=""),
         build_dashboard_header(
@@ -167,7 +164,7 @@ app.layout = html.Div(
                     style={"display": "none"},
                     children=build_alt_city_card_grid(
                         alt_city_cards=initial_alt_city_cards,
-                        selected_city=initial_alt_city,
+                        selected_city=initial_city,
                     ),
                 ),
 
@@ -226,7 +223,7 @@ app.layout = html.Div(
                                 html.P(
                                     id="alt-city-label",
                                     className="section-subtitle",
-                                    children=f"{initial_alt_city} · Backup Availability Breakdown" if initial_alt_city else "Backup Availability Breakdown",
+                                    children=f"{initial_city} · Backup Availability Breakdown" if initial_city else "Backup Availability Breakdown",
                                 ),
                             ],
                         ),
@@ -534,7 +531,7 @@ def refresh_kpi_for_alt_toggle(
 # Callback: click alt city card -> select alt city
 # -----------------------------------------------------------------------
 @callback(
-    Output("store-alt-selected-city", "data"),
+    Output("store-selected-city", "data", allow_duplicate=True),
     Output("store-alt-selected-type", "data", allow_duplicate=True),
     Input({"type": "alt-city-card", "index": dash.ALL}, "n_clicks"),
     prevent_initial_call=True,
@@ -582,7 +579,7 @@ def select_alt_type(_: list[int | None], current_type: str) -> str:
 @callback(
     Output("alt-city-grid", "children"),
     Input("store-enriched-rows", "data"),
-    Input("store-alt-selected-city", "data"),
+    Input("store-selected-city", "data"),
 )
 def refresh_alt_city_grid(
     enriched_rows: list[dict[str, Any]],
@@ -600,7 +597,7 @@ def refresh_alt_city_grid(
     Output("alt-donut-container", "children"),
     Output("alt-type-cards-container", "children"),
     Input("store-enriched-rows", "data"),
-    Input("store-alt-selected-city", "data"),
+    Input("store-selected-city", "data"),
     Input("store-alt-selected-type", "data"),
 )
 def refresh_alt_executive_view(
@@ -641,7 +638,7 @@ def sync_alt_search(values: list[str | None]) -> str:
 @callback(
     Output("alt-pivot-wrapper", "children"),
     Input("store-enriched-rows", "data"),
-    Input("store-alt-selected-city", "data"),
+    Input("store-selected-city", "data"),
     Input("store-alt-selected-type", "data"),
     Input("store-alt-search", "data"),
 )
