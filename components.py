@@ -887,7 +887,7 @@ def build_combined_pivot_table(
                 )
             else:
                 source_cell = html.Td(
-                    html.Span("LPG", className="source-pill-lpg"),
+                    html.Span("No Alternative", className="source-pill-no-alt"),
                     className="pivot-cell",
                 )
 
