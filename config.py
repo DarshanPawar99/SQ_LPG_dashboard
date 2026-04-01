@@ -41,7 +41,6 @@ DEFAULT_SEARCH_TEXT = ""
 # DASHBOARD LABELS
 # -------------------------------------------------------------------
 SECTION_TAB_LABEL = "01 Executive View"
-EMPTY_PIVOT_MESSAGE = "Select a risk category above to expand the client–vendor breakdown"
 EXECUTIVE_VIEW_TITLE = "Executive View"
 
 

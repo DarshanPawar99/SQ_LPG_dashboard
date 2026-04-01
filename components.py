@@ -5,8 +5,8 @@ Reusable Dash UI builders for the LPG Stock Tracker Dashboard.
 
 KPI layout:
 - Row 1 (2 cols): Total Vendors | Total Clients (overall, no risk dots)
-- Row 2 (4 cols): Vendors with LPG (risk dots) | Clients with LPG (risk dots) |
-                  Vendors with Alternative | Clients with Alternative
+- Row 2 (4 cols): Vendors with LPG (clickable, risk dots) | Clients with LPG (risk dots) |
+                  Vendors with Alternative (clickable) | Clients with Alternative
 """
 
 from __future__ import annotations
@@ -21,11 +21,9 @@ from config import (
     ALT_TYPE_COLORS,
     ALT_TYPE_SHORT_NAMES,
     ALT_TYPE_SUBTITLES,
-    EMPTY_PIVOT_MESSAGE,
     MAX_SELECTABLE_DATE,
     MIN_SELECTABLE_DATE,
     RISK_COLORS,
-    RISK_DISPLAY_ORDER,
     RISK_SUBTITLES,
 )
 
@@ -67,6 +65,25 @@ def _format_number(value: Any) -> str:
         return f"{number:,.2f}"
     except (TypeError, ValueError):
         return str(value)
+
+
+def _build_combined_toggle_bar(is_on: bool, toggle_btn_id: dict) -> html.Div:
+    cls = "combined-toggle-btn combined-toggle-btn-on" if is_on else "combined-toggle-btn"
+    return html.Div(
+        className="combined-toggle-bar",
+        children=[
+            html.Button(
+                id=toggle_btn_id,
+                n_clicks=0,
+                className=cls,
+                title="Toggle combined LPG + Alternative view",
+                children=[
+                    html.Span(className="toggle-knob"),
+                    html.Span("Combined View", className="toggle-label"),
+                ],
+            ),
+        ],
+    )
 
 
 # -------------------------------------------------------------------
@@ -118,8 +135,36 @@ def build_dashboard_header(title: str, subtitle: str, selected_date: date) -> ht
 # -------------------------------------------------------------------
 # KPI cards
 # -------------------------------------------------------------------
+def _build_kpi_card_lpg_vendor(summary: dict[str, Any], is_active: bool = False) -> html.Button:
+    """Clickable KPI card for Vendors with LPG — activates the LPG view."""
+    cls = "kpi-card kpi-card-btn"
+    if is_active:
+        cls += " kpi-card-btn-active"
+    risk_row = html.Div(
+        className="kpi-risk-row",
+        children=[
+            _count_dot(RISK_COLORS["Out of Stock"], int(summary.get("out", 0)), "Out of Stock"),
+            _count_dot(RISK_COLORS["Critical"], int(summary.get("critical", 0)), "Critical"),
+            _count_dot(RISK_COLORS["Moderate"], int(summary.get("moderate", 0)), "Moderate"),
+            _count_dot(RISK_COLORS["Safe"], int(summary.get("safe", 0)), "Safe"),
+        ],
+    )
+    return html.Button(
+        id="lpg-vendor-kpi-card",
+        n_clicks=0,
+        className=cls,
+        title="Click to explore LPG vendor risk",
+        children=[
+            html.Div(str(summary.get("title", "")), className="kpi-label"),
+            html.Div(_format_number(summary.get("value", 0)), className="kpi-value"),
+            html.Div(str(summary.get("subtitle", "")), className="kpi-subtitle"),
+            risk_row,
+        ],
+    )
+
+
 def _build_kpi_card_with_risk(summary: dict[str, Any]) -> html.Div:
-    """KPI card WITH risk dot breakdown (for LPG cards)."""
+    """KPI card WITH risk dot breakdown (for LPG client card)."""
     risk_row = html.Div(
         className="kpi-risk-row",
         children=[
@@ -142,18 +187,19 @@ def _build_kpi_card_with_risk(summary: dict[str, Any]) -> html.Div:
 
 
 def _build_kpi_card_plain(summary: dict[str, Any], accent_color: str = "") -> html.Div:
-    """KPI card WITHOUT risk dots (for overall and alternative cards)."""
-    children = [
-        html.Div(str(summary.get("title", "")), className="kpi-label"),
-        html.Div(
-            _format_number(summary.get("value", 0)),
-            className="kpi-value",
-            style={"color": accent_color} if accent_color else {},
-        ),
-        html.Div(str(summary.get("subtitle", "")), className="kpi-subtitle"),
-    ]
-
-    return html.Div(className="kpi-card", children=children)
+    """KPI card WITHOUT risk dots (for overall and alternative client cards)."""
+    return html.Div(
+        className="kpi-card",
+        children=[
+            html.Div(str(summary.get("title", "")), className="kpi-label"),
+            html.Div(
+                _format_number(summary.get("value", 0)),
+                className="kpi-value",
+                style={"color": accent_color} if accent_color else {},
+            ),
+            html.Div(str(summary.get("subtitle", "")), className="kpi-subtitle"),
+        ],
+    )
 
 
 def _build_kpi_card_alt_vendor(summary: dict[str, Any], is_active: bool = False) -> html.Button:
@@ -190,7 +236,11 @@ def build_kpi_section(
     """
     Build the full KPI section with two rows:
     Row 1: Total Vendors | Total Clients (overall, plain)
-    Row 2: LPG Vendors (risk) | LPG Clients (risk) | Alt Vendors (plain) | Alt Clients (plain)
+    Row 2: LPG Vendors (clickable, risk) | LPG Clients (risk) |
+           Alt Vendors (clickable) | Alt Clients (plain)
+
+    LPG vendor card is active when alt_view_open=False.
+    Alt vendor card is active when alt_view_open=True.
     """
     return html.Div(
         className="kpi-section",
@@ -207,7 +257,7 @@ def build_kpi_section(
             html.Div(
                 className="kpi-card-row kpi-row-detail",
                 children=[
-                    _build_kpi_card_with_risk(lpg_vendor),
+                    _build_kpi_card_lpg_vendor(lpg_vendor, is_active=not alt_view_open),
                     _build_kpi_card_with_risk(lpg_client),
                     _build_kpi_card_alt_vendor(alt_vendor, is_active=alt_view_open),
                     _build_kpi_card_plain(alt_client, accent_color="#77a5ff"),
@@ -383,34 +433,6 @@ def build_executive_cards(city_summary: dict[str, Any], selected_risk: str) -> l
 
 
 # -------------------------------------------------------------------
-# Empty pivot state
-# -------------------------------------------------------------------
-def build_empty_pivot_state(search_text: str = "") -> html.Div:
-    return html.Div(
-        className="pivot-empty-state",
-        children=[
-            dcc.Input(
-                id={"type": "pivot-search-input", "index": "main"},
-                value=search_text,
-                type="text",
-                placeholder="Search client or vendor across all categories…",
-                className="pivot-search-input pivot-empty-search",
-                debounce=True,
-            ),
-            html.Div("⬆", className="pivot-empty-icon"),
-            html.Div(EMPTY_PIVOT_MESSAGE, className="pivot-empty-title"),
-            html.Div(
-                "Select a risk card to filter, or search above to see all vendors",
-                className="pivot-empty-hint",
-            ),
-        ],
-    )
-
-
-# -------------------------------------------------------------------
-# Pivot table section
-# -------------------------------------------------------------------
-# -------------------------------------------------------------------
 # Alternative coverage: city cards
 # -------------------------------------------------------------------
 def build_alt_city_card_grid(alt_city_cards: list[dict[str, Any]], selected_city: str) -> html.Div:
@@ -483,25 +505,155 @@ def build_alt_type_cards(type_summary: dict[str, Any], selected_type: str) -> li
 
 
 # -------------------------------------------------------------------
-# Alternative coverage: empty pivot state
+# LPG pivot table
 # -------------------------------------------------------------------
-def build_alt_empty_pivot_state(search_text: str = "") -> html.Div:
+def build_city_pivot_table(
+    selected_city: str,
+    selected_risk: str,
+    pivot_groups: list[dict[str, Any]],
+    search_text: str = "",
+    combined_on: bool = False,
+    toggle_btn_id: dict | None = None,
+) -> html.Div:
+    if toggle_btn_id is None:
+        toggle_btn_id = {"type": "combined-toggle", "index": "lpg"}
+
+    table_rows: list[html.Tr] = []
+    total_vendor_rows = sum(g.get("vendor_count", 0) for g in pivot_groups)
+    total_pax_all = sum(g.get("total_pax", 0) for g in pivot_groups)
+
+    for group in pivot_groups:
+        client = str(group.get("client", ""))
+        rows = group.get("rows", [])
+        total_pax = group.get("total_pax", 0)
+        vendor_count = group.get("vendor_count", len(rows))
+
+        table_rows.append(
+            html.Tr(
+                className="pivot-group-row",
+                children=[
+                    html.Td(
+                        colSpan=7,
+                        className="pivot-group-cell",
+                        children=html.Div(
+                            className="pivot-group-header",
+                            children=[
+                                html.Div(
+                                    className="pivot-group-title-wrap",
+                                    children=[
+                                        html.Span("▸", className="pivot-group-arrow"),
+                                        html.Span(client, className="pivot-group-title"),
+                                    ],
+                                ),
+                                html.Div(
+                                    className="pivot-group-badges",
+                                    children=[
+                                        html.Span(f"{_format_number(vendor_count)} vendors", className="pivot-badge"),
+                                        html.Span(f"{_format_number(total_pax)} pax", className="pivot-badge"),
+                                    ],
+                                ),
+                            ],
+                        ),
+                    )
+                ],
+            )
+        )
+
+        for idx, row in enumerate(rows):
+            table_rows.append(
+                html.Tr(
+                    className="pivot-data-row",
+                    children=[
+                        html.Td(client if idx == 0 else "", className="pivot-cell pivot-cell-dim"),
+                        html.Td(str(row.get("vendor", "")), className="pivot-cell pivot-cell-strong"),
+                        html.Td(_risk_pill(str(row.get("risk", ""))), className="pivot-cell"),
+                        html.Td(_format_number(row.get("live_days", 0)), className="pivot-cell"),
+                        html.Td(str(row.get("last_updated", "")), className="pivot-cell pivot-cell-dim"),
+                        html.Td(_format_number(row.get("pax", 0)), className="pivot-cell"),
+                        html.Td(_alternative_pill(bool(row.get("is_alternative", False))), className="pivot-cell"),
+                    ],
+                )
+            )
+
+    if not table_rows:
+        table_rows.append(
+            html.Tr(children=[
+                html.Td("No records found for the selected filters.", colSpan=7, className="pivot-no-records")
+            ])
+        )
+
+    summary_text = (
+        f"{len(pivot_groups)} clients · {_format_number(total_vendor_rows)} vendor rows · "
+        f"{_format_number(total_pax_all)} total pax"
+    )
+
     return html.Div(
-        className="pivot-empty-state",
+        className="pivot-section",
         children=[
-            dcc.Input(
-                id={"type": "alt-search-input", "index": "main"},
-                value=search_text,
-                type="text",
-                placeholder="Search client or vendor across all coverage types…",
-                className="pivot-search-input pivot-empty-search",
-                debounce=True,
-            ),
-            html.Div("⬆", className="pivot-empty-icon"),
-            html.Div("Select a coverage type above to expand the vendor detail", className="pivot-empty-title"),
             html.Div(
-                "Select a coverage type to filter, or search above to see all alt vendors",
-                className="pivot-empty-hint",
+                className="pivot-section-header",
+                children=[
+                    html.Div(
+                        className="pivot-section-title-wrap",
+                        children=[
+                            html.Div(f"{selected_city} · LPG Vendor Breakdown", className="pivot-section-title"),
+                            html.Div(
+                                [
+                                    "Showing ",
+                                    html.Span(
+                                        selected_risk if selected_risk else "All Categories",
+                                        className="pivot-selected-risk-text",
+                                        style={"color": RISK_COLORS.get(selected_risk, "#77a5ff")},
+                                    ),
+                                    " vendors. One client can have multiple vendors.",
+                                ],
+                                className="pivot-section-subtitle",
+                            ),
+                        ],
+                    ),
+                    html.Div(
+                        className="pivot-controls-wrap",
+                        children=[
+                            _build_combined_toggle_bar(is_on=combined_on, toggle_btn_id=toggle_btn_id),
+                            html.Div(
+                                className="pivot-search-wrap",
+                                children=[
+                                    dcc.Input(
+                                        id={"type": "pivot-search-input", "index": "main"},
+                                        value=search_text,
+                                        type="text",
+                                        placeholder="Search client or vendor…",
+                                        className="pivot-search-input",
+                                        debounce=True,
+                                    )
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            html.Div(className="pivot-summary-bar", children=summary_text),
+            html.Div(
+                className="pivot-table-wrap",
+                children=[
+                    html.Table(
+                        className="pivot-table",
+                        children=[
+                            html.Thead(
+                                html.Tr(children=[
+                                    html.Th("Client", className="pivot-th"),
+                                    html.Th("Vendor", className="pivot-th"),
+                                    html.Th("Risk Category", className="pivot-th"),
+                                    html.Th("Live LPG Days", className="pivot-th"),
+                                    html.Th("Last Updated", className="pivot-th"),
+                                    html.Th("Pax", className="pivot-th"),
+                                    html.Th("Alternative Available", className="pivot-th"),
+                                ])
+                            ),
+                            html.Tbody(table_rows),
+                        ],
+                    )
+                ],
             ),
         ],
     )
@@ -515,7 +667,12 @@ def build_alt_pivot_table(
     selected_type: str,
     pivot_groups: list[dict[str, Any]],
     search_text: str = "",
+    combined_on: bool = False,
+    toggle_btn_id: dict | None = None,
 ) -> html.Div:
+    if toggle_btn_id is None:
+        toggle_btn_id = {"type": "combined-toggle", "index": "alt"}
+
     table_rows: list[html.Tr] = []
     total_vendor_rows = sum(g.get("vendor_count", 0) for g in pivot_groups)
     total_pax_all = sum(g.get("total_pax", 0) for g in pivot_groups)
@@ -616,16 +773,22 @@ def build_alt_pivot_table(
                         ],
                     ),
                     html.Div(
-                        className="pivot-search-wrap",
+                        className="pivot-controls-wrap",
                         children=[
-                            dcc.Input(
-                                id={"type": "alt-search-input", "index": "main"},
-                                value=search_text,
-                                type="text",
-                                placeholder="Search client or vendor…",
-                                className="pivot-search-input",
-                                debounce=True,
-                            )
+                            _build_combined_toggle_bar(is_on=combined_on, toggle_btn_id=toggle_btn_id),
+                            html.Div(
+                                className="pivot-search-wrap",
+                                children=[
+                                    dcc.Input(
+                                        id={"type": "alt-search-input", "index": "main"},
+                                        value=search_text,
+                                        type="text",
+                                        placeholder="Search client or vendor…",
+                                        className="pivot-search-input",
+                                        debounce=True,
+                                    )
+                                ],
+                            ),
                         ],
                     ),
                 ],
@@ -656,14 +819,23 @@ def build_alt_pivot_table(
     )
 
 
-def build_city_pivot_table(
+# -------------------------------------------------------------------
+# Combined pivot table (LPG + Alternative vendors merged)
+# -------------------------------------------------------------------
+def build_combined_pivot_table(
     selected_city: str,
-    selected_risk: str,
     pivot_groups: list[dict[str, Any]],
     search_text: str = "",
+    combined_on: bool = True,
+    toggle_btn_id: dict | None = None,
 ) -> html.Div:
-    table_rows: list[html.Tr] = []
+    if toggle_btn_id is None:
+        toggle_btn_id = {"type": "combined-toggle", "index": "lpg"}
 
+    search_index = str(toggle_btn_id.get("index", "lpg"))
+    search_input_id = {"type": "combined-search-input", "index": search_index}
+
+    table_rows: list[html.Tr] = []
     total_vendor_rows = sum(g.get("vendor_count", 0) for g in pivot_groups)
     total_pax_all = sum(g.get("total_pax", 0) for g in pivot_groups)
 
@@ -683,20 +855,14 @@ def build_city_pivot_table(
                         children=html.Div(
                             className="pivot-group-header",
                             children=[
-                                html.Div(
-                                    className="pivot-group-title-wrap",
-                                    children=[
-                                        html.Span("▸", className="pivot-group-arrow"),
-                                        html.Span(client, className="pivot-group-title"),
-                                    ],
-                                ),
-                                html.Div(
-                                    className="pivot-group-badges",
-                                    children=[
-                                        html.Span(f"{_format_number(vendor_count)} vendors", className="pivot-badge"),
-                                        html.Span(f"{_format_number(total_pax)} pax", className="pivot-badge"),
-                                    ],
-                                ),
+                                html.Div(className="pivot-group-title-wrap", children=[
+                                    html.Span("▸", className="pivot-group-arrow"),
+                                    html.Span(client, className="pivot-group-title"),
+                                ]),
+                                html.Div(className="pivot-group-badges", children=[
+                                    html.Span(f"{_format_number(vendor_count)} vendors", className="pivot-badge"),
+                                    html.Span(f"{_format_number(total_pax)} pax", className="pivot-badge"),
+                                ]),
                             ],
                         ),
                     )
@@ -705,17 +871,41 @@ def build_city_pivot_table(
         )
 
         for idx, row in enumerate(rows):
+            risk = str(row.get("risk", ""))
+            live_days_color = RISK_COLORS.get(risk, "#e2e8f0")
+            is_alt = bool(row.get("is_alternative", False))
+            alt_type = str(row.get("alt_type", ""))
+
+            if is_alt:
+                source_cell = html.Td(
+                    html.Span(
+                        alt_type or "Alternative",
+                        className="alt-type-pill",
+                        style={"backgroundColor": ALT_TYPE_COLORS.get(alt_type, "#334155")},
+                    ),
+                    className="pivot-cell",
+                )
+            else:
+                source_cell = html.Td(
+                    html.Span("LPG", className="source-pill-lpg"),
+                    className="pivot-cell",
+                )
+
             table_rows.append(
                 html.Tr(
                     className="pivot-data-row",
                     children=[
                         html.Td(client if idx == 0 else "", className="pivot-cell pivot-cell-dim"),
                         html.Td(str(row.get("vendor", "")), className="pivot-cell pivot-cell-strong"),
-                        html.Td(_risk_pill(str(row.get("risk", ""))), className="pivot-cell"),
-                        html.Td(_format_number(row.get("live_days", 0)), className="pivot-cell"),
+                        html.Td(_risk_pill(risk), className="pivot-cell"),
+                        html.Td(
+                            _format_number(row.get("live_days", 0)),
+                            className="pivot-cell",
+                            style={"color": live_days_color, "fontWeight": "700"},
+                        ),
                         html.Td(str(row.get("last_updated", "")), className="pivot-cell pivot-cell-dim"),
                         html.Td(_format_number(row.get("pax", 0)), className="pivot-cell"),
-                        html.Td(_alternative_pill(bool(row.get("is_alternative", False))), className="pivot-cell"),
+                        source_cell,
                     ],
                 )
             )
@@ -723,7 +913,7 @@ def build_city_pivot_table(
     if not table_rows:
         table_rows.append(
             html.Tr(children=[
-                html.Td("No records found for the selected filters.", colSpan=7, className="pivot-no-records")
+                html.Td("No records found.", colSpan=7, className="pivot-no-records")
             ])
         )
 
@@ -741,32 +931,30 @@ def build_city_pivot_table(
                     html.Div(
                         className="pivot-section-title-wrap",
                         children=[
-                            html.Div(f"{selected_city} · LPG Vendor Breakdown", className="pivot-section-title"),
+                            html.Div(f"{selected_city} · Combined Vendor View", className="pivot-section-title"),
                             html.Div(
-                                [
-                                    "Showing ",
-                                    html.Span(
-                                        selected_risk if selected_risk else "All Categories",
-                                        className="pivot-selected-risk-text",
-                                        style={"color": RISK_COLORS.get(selected_risk, "#77a5ff")},
-                                    ),
-                                    " vendors. One client can have multiple vendors.",
-                                ],
+                                "All LPG & alternative vendors for this city.",
                                 className="pivot-section-subtitle",
                             ),
                         ],
                     ),
                     html.Div(
-                        className="pivot-search-wrap",
+                        className="pivot-controls-wrap",
                         children=[
-                            dcc.Input(
-                                id={"type": "pivot-search-input", "index": "main"},
-                                value=search_text,
-                                type="text",
-                                placeholder="Search client or vendor…",
-                                className="pivot-search-input",
-                                debounce=True,
-                            )
+                            _build_combined_toggle_bar(is_on=combined_on, toggle_btn_id=toggle_btn_id),
+                            html.Div(
+                                className="pivot-search-wrap",
+                                children=[
+                                    dcc.Input(
+                                        id=search_input_id,
+                                        value=search_text,
+                                        type="text",
+                                        placeholder="Search client or vendor…",
+                                        className="pivot-search-input",
+                                        debounce=True,
+                                    )
+                                ],
+                            ),
                         ],
                     ),
                 ],
@@ -782,11 +970,11 @@ def build_city_pivot_table(
                                 html.Tr(children=[
                                     html.Th("Client", className="pivot-th"),
                                     html.Th("Vendor", className="pivot-th"),
-                                    html.Th("Risk Category", className="pivot-th"),
+                                    html.Th("Risk", className="pivot-th"),
                                     html.Th("Live LPG Days", className="pivot-th"),
                                     html.Th("Last Updated", className="pivot-th"),
-                                    html.Th("Pax", className="pivot-th"),
-                                    html.Th("Alternative Available", className="pivot-th"),
+                                    html.Th("PAX", className="pivot-th"),
+                                    html.Th("Source", className="pivot-th"),
                                 ])
                             ),
                             html.Tbody(table_rows),

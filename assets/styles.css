@@ -907,6 +907,104 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
 }
 
 /* ---------------------------------------------------------
+   Combined view toggle bar
+--------------------------------------------------------- */
+.combined-toggle-bar {
+  display: flex;
+  align-items: center;
+}
+
+.combined-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 24px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition-normal),
+    background var(--transition-normal),
+    color var(--transition-normal);
+}
+
+.combined-toggle-btn:hover {
+  border-color: #3b82f6;
+  color: var(--text-accent);
+}
+
+.combined-toggle-btn-on {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--text-accent);
+}
+
+.toggle-knob {
+  flex-shrink: 0;
+  position: relative;
+  width: 34px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  transition: background var(--transition-normal);
+}
+
+.toggle-knob::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--text-faint);
+  transition: transform var(--transition-normal), background var(--transition-normal);
+}
+
+.combined-toggle-btn-on .toggle-knob {
+  background: rgba(59, 130, 246, 0.35);
+}
+
+.combined-toggle-btn-on .toggle-knob::after {
+  transform: translateX(16px);
+  background: var(--text-accent);
+}
+
+.toggle-label {
+  line-height: 1;
+}
+
+/* ---------------------------------------------------------
+   Pivot controls wrap (toggle + search side by side)
+--------------------------------------------------------- */
+.pivot-controls-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------
+   LPG source pill in combined table
+--------------------------------------------------------- */
+.source-pill-lpg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------
    Responsive behavior
 --------------------------------------------------------- */
 @media (max-width: 1280px) {

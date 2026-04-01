@@ -413,6 +413,53 @@ def build_alt_donut_data(enriched_rows: list[dict[str, Any]], selected_city: str
 # -------------------------------------------------------------------
 # Alternative coverage: pivot groups
 # -------------------------------------------------------------------
+def build_combined_pivot_groups(
+    enriched_rows: list[dict[str, Any]],
+    selected_city: str,
+    search_text: str = "",
+) -> list[dict[str, Any]]:
+    """All vendors (LPG + alternative) for a city, grouped by client."""
+    city_rows = [row for row in enriched_rows if row.get("region") == selected_city]
+
+    if search_text:
+        needle = search_text.strip().lower()
+        city_rows = [
+            row for row in city_rows
+            if needle in str(row.get("client", "")).lower()
+            or needle in str(row.get("vendor", "")).lower()
+        ]
+
+    city_rows.sort(
+        key=lambda row: (
+            str(row.get("client", "")),
+            risk_sort_key(str(row.get("risk", "Safe"))),
+            str(row.get("vendor", "")),
+        )
+    )
+
+    enriched: list[dict[str, Any]] = []
+    for row in city_rows:
+        if row.get("is_alternative"):
+            enriched.append({**row, "alt_type": _get_alt_type(row)})
+        else:
+            enriched.append({**row, "alt_type": ""})
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in enriched:
+        client = str(row.get("client", "")).strip()
+        grouped.setdefault(client, []).append(row)
+
+    return [
+        {
+            "client": client,
+            "rows": rows,
+            "total_pax": sum(float(r.get("pax", 0) or 0) for r in rows),
+            "vendor_count": len(rows),
+        }
+        for client, rows in grouped.items()
+    ]
+
+
 def build_alt_pivot_groups(
     enriched_rows: list[dict[str, Any]],
     selected_city: str,
