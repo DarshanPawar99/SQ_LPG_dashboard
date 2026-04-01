@@ -828,6 +828,7 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
   color: var(--text-strong);
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .continuity-yes {
@@ -989,17 +990,18 @@ input#selected-date-input::-webkit-calendar-picker-indicator {
 }
 
 /* ---------------------------------------------------------
-   LPG source pill in combined table
+   Source pills in combined table
 --------------------------------------------------------- */
-.source-pill-lpg {
+.source-pill-no-alt {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 28px;
   padding: 0 12px;
   border-radius: var(--radius-pill);
-  background: rgba(99, 102, 241, 0.18);
-  color: #a5b4fc;
+  white-space: nowrap;
+  background: var(--danger-bg);
+  color: var(--danger-text);
   font-size: 12px;
   font-weight: 600;
 }
