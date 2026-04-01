@@ -3,7 +3,7 @@ Main Dash application for the LPG Stock Tracker Dashboard.
 
 KPI layout:
 - Row 1: Total Vendors | Total Clients (all, no risk dots)
-- Row 2: Vendors with LPG | Clients with LPG | Vendors with Alternative (clickable) | Clients with Alternative
+- Row 2: Vendors with LPG (clickable) | Clients with LPG | Vendors with Alternative (clickable) | Clients with Alternative
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ from aggregations import (
     build_city_vendor_summary,
     build_client_pivot_groups,
     build_client_worst_risk_summary,
+    build_combined_pivot_groups,
     build_overall_client_summary,
     build_overall_vendor_summary,
     build_region_cards,
@@ -34,12 +35,11 @@ from aggregations import (
 )
 from components import (
     build_alt_city_card_grid,
-    build_alt_empty_pivot_state,
     build_alt_pivot_table,
     build_alt_type_cards,
     build_city_pivot_table,
+    build_combined_pivot_table,
     build_dashboard_header,
-    build_empty_pivot_state,
     build_executive_cards,
     build_executive_donut,
     build_kpi_section,
@@ -85,13 +85,6 @@ def get_city_options(enriched_rows: list[dict[str, Any]]) -> list[str]:
     return sorted(cities)
 
 
-def get_alt_city_options(enriched_rows: list[dict[str, Any]]) -> list[str]:
-    """Cities that have at least one alternative vendor."""
-    alt = [r for r in enriched_rows if r.get("is_alternative", False)]
-    cities = {str(r["region"]).strip() for r in alt if r.get("region")}
-    return sorted(cities)
-
-
 # -----------------------------
 # Initial precomputed state
 # -----------------------------
@@ -111,6 +104,8 @@ initial_city_donut = build_city_donut_data(initial_rows, initial_city)
 initial_alt_city_cards = build_alt_city_cards(initial_rows)
 initial_alt_type_summary = build_alt_type_summary(initial_rows, initial_city)
 initial_alt_donut = build_alt_donut_data(initial_rows, initial_city)
+initial_lpg_pivot_groups = build_client_pivot_groups(initial_rows, initial_city, "", "")
+initial_alt_pivot_groups = build_alt_pivot_groups(initial_rows, initial_city, "", "")
 
 
 app.layout = html.Div(
@@ -126,6 +121,9 @@ app.layout = html.Div(
         dcc.Store(id="store-alt-view-open", data=False),
         dcc.Store(id="store-alt-selected-type", data=""),
         dcc.Store(id="store-alt-search", data=""),
+        # ---- stores: combined view ----
+        dcc.Store(id="store-combined-view", data=False),
+        dcc.Store(id="store-combined-search", data=""),
         build_dashboard_header(
             title=APP_TITLE,
             subtitle=APP_SUBTITLE,
@@ -255,7 +253,14 @@ app.layout = html.Div(
                 html.Div(
                     id="pivot-section-wrapper",
                     className="pivot-section-wrapper",
-                    children=build_empty_pivot_state(),
+                    children=build_city_pivot_table(
+                        selected_city=initial_city,
+                        selected_risk=DEFAULT_SELECTED_RISK,
+                        pivot_groups=initial_lpg_pivot_groups,
+                        search_text="",
+                        combined_on=False,
+                        toggle_btn_id={"type": "combined-toggle", "index": "lpg"},
+                    ),
                 ),
 
                 # Alt pivot (shown only when alt view is open)
@@ -263,7 +268,14 @@ app.layout = html.Div(
                     id="alt-pivot-wrapper",
                     className="pivot-section-wrapper",
                     style={"display": "none"},
-                    children=build_alt_empty_pivot_state(),
+                    children=build_alt_pivot_table(
+                        selected_city=initial_city,
+                        selected_type="",
+                        pivot_groups=initial_alt_pivot_groups,
+                        search_text="",
+                        combined_on=False,
+                        toggle_btn_id={"type": "combined-toggle", "index": "alt"},
+                    ),
                 ),
             ],
         ),
@@ -427,15 +439,32 @@ def sync_search_text(search_values: list[str | None]) -> str:
     Input("store-selected-city", "data"),
     Input("store-selected-risk", "data"),
     Input("store-search-text", "data"),
+    Input("store-combined-view", "data"),
+    Input("store-combined-search", "data"),
 )
 def refresh_pivot_section(
     enriched_rows: list[dict[str, Any]],
     selected_city: str,
     selected_risk: str,
     search_text: str,
+    combined_view: bool,
+    combined_search: str,
 ):
-    if not selected_risk and not search_text:
-        return build_empty_pivot_state(search_text)
+    toggle_btn_id = {"type": "combined-toggle", "index": "lpg"}
+
+    if combined_view:
+        pivot_groups = build_combined_pivot_groups(
+            enriched_rows=enriched_rows,
+            selected_city=selected_city,
+            search_text=combined_search,
+        )
+        return build_combined_pivot_table(
+            selected_city=selected_city,
+            pivot_groups=pivot_groups,
+            search_text=combined_search,
+            combined_on=True,
+            toggle_btn_id=toggle_btn_id,
+        )
 
     pivot_groups = build_client_pivot_groups(
         enriched_rows=enriched_rows,
@@ -443,18 +472,37 @@ def refresh_pivot_section(
         selected_risk=selected_risk,
         search_text=search_text,
     )
-
     return build_city_pivot_table(
         selected_city=selected_city,
         selected_risk=selected_risk,
         pivot_groups=pivot_groups,
         search_text=search_text,
+        combined_on=False,
+        toggle_btn_id=toggle_btn_id,
     )
 
 
 # =======================================================================
 # ALT VIEW CALLBACKS
 # =======================================================================
+
+# -----------------------------------------------------------------------
+# Callback: click LPG vendor KPI card -> switch to LPG view
+# -----------------------------------------------------------------------
+@callback(
+    Output("store-alt-view-open", "data", allow_duplicate=True),
+    Output("store-alt-selected-type", "data", allow_duplicate=True),
+    Input("lpg-vendor-kpi-card", "n_clicks"),
+    State("store-alt-view-open", "data"),
+    prevent_initial_call=True,
+)
+def toggle_lpg_view(n_clicks: int | None, is_open: bool) -> tuple[bool, str]:
+    if not n_clicks or n_clicks <= 0:
+        raise PreventUpdate
+    if not is_open:
+        raise PreventUpdate  # already in LPG view
+    return False, ""
+
 
 # -----------------------------------------------------------------------
 # Callback: click alt-vendor KPI card -> toggle alt view open/closed
@@ -501,13 +549,11 @@ def toggle_view_visibility(is_open: bool):
     Output("kpi-section", "children", allow_duplicate=True),
     Input("store-alt-view-open", "data"),
     State("store-enriched-rows", "data"),
-    State("store-selected-risk", "data"),
     prevent_initial_call=True,
 )
 def refresh_kpi_for_alt_toggle(
     alt_view_open: bool,
     enriched_rows: list[dict[str, Any]],
-    selected_risk: str,
 ):
     overall_vendor = build_overall_vendor_summary(enriched_rows)
     overall_client = build_overall_client_summary(enriched_rows)
@@ -641,15 +687,32 @@ def sync_alt_search(values: list[str | None]) -> str:
     Input("store-selected-city", "data"),
     Input("store-alt-selected-type", "data"),
     Input("store-alt-search", "data"),
+    Input("store-combined-view", "data"),
+    Input("store-combined-search", "data"),
 )
 def refresh_alt_pivot(
     enriched_rows: list[dict[str, Any]],
     selected_city: str,
     selected_type: str,
     search_text: str,
+    combined_view: bool,
+    combined_search: str,
 ):
-    if not selected_type and not search_text:
-        return build_alt_empty_pivot_state(search_text)
+    toggle_btn_id = {"type": "combined-toggle", "index": "alt"}
+
+    if combined_view:
+        pivot_groups = build_combined_pivot_groups(
+            enriched_rows=enriched_rows,
+            selected_city=selected_city,
+            search_text=combined_search,
+        )
+        return build_combined_pivot_table(
+            selected_city=selected_city,
+            pivot_groups=pivot_groups,
+            search_text=combined_search,
+            combined_on=True,
+            toggle_btn_id=toggle_btn_id,
+        )
 
     pivot_groups = build_alt_pivot_groups(
         enriched_rows=enriched_rows,
@@ -657,13 +720,53 @@ def refresh_alt_pivot(
         selected_type=selected_type,
         search_text=search_text,
     )
-
     return build_alt_pivot_table(
         selected_city=selected_city,
         selected_type=selected_type,
         pivot_groups=pivot_groups,
         search_text=search_text,
+        combined_on=False,
+        toggle_btn_id=toggle_btn_id,
     )
+
+
+# =======================================================================
+# COMBINED VIEW CALLBACKS
+# =======================================================================
+
+# -----------------------------------------------------------------------
+# Callback: combined toggle button -> toggle combined view
+# -----------------------------------------------------------------------
+@callback(
+    Output("store-combined-view", "data"),
+    Output("store-combined-search", "data"),
+    Input({"type": "combined-toggle", "index": dash.ALL}, "n_clicks"),
+    State("store-combined-view", "data"),
+    prevent_initial_call=True,
+)
+def toggle_combined_view(clicks: list[int | None], is_on: bool) -> tuple[bool, str]:
+    if not clicks or all((v or 0) <= 0 for v in clicks):
+        raise PreventUpdate
+
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+
+    return not bool(is_on), ""
+
+
+# -----------------------------------------------------------------------
+# Callback: combined search input -> combined search store
+# -----------------------------------------------------------------------
+@callback(
+    Output("store-combined-search", "data", allow_duplicate=True),
+    Input({"type": "combined-search-input", "index": dash.ALL}, "value"),
+    prevent_initial_call=True,
+)
+def sync_combined_search(values: list[str | None]) -> str:
+    if not values:
+        return ""
+    return str(values[-1] or "").strip()
 
 
 if __name__ == "__main__":
