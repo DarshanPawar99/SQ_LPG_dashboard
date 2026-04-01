@@ -560,14 +560,20 @@ def build_city_pivot_table(
         )
 
         for idx, row in enumerate(rows):
+            risk = str(row.get("risk", ""))
+            live_days_color = RISK_COLORS.get(risk, "#e2e8f0")
             table_rows.append(
                 html.Tr(
                     className="pivot-data-row",
                     children=[
                         html.Td(client if idx == 0 else "", className="pivot-cell pivot-cell-dim"),
                         html.Td(str(row.get("vendor", "")), className="pivot-cell pivot-cell-strong"),
-                        html.Td(_risk_pill(str(row.get("risk", ""))), className="pivot-cell"),
-                        html.Td(_format_number(row.get("live_days", 0)), className="pivot-cell"),
+                        html.Td(_risk_pill(risk), className="pivot-cell"),
+                        html.Td(
+                            _format_number(row.get("live_days", 0)),
+                            className="pivot-cell",
+                            style={"color": live_days_color, "fontWeight": "700"},
+                        ),
                         html.Td(str(row.get("last_updated", "")), className="pivot-cell pivot-cell-dim"),
                         html.Td(_format_number(row.get("pax", 0)), className="pivot-cell"),
                         html.Td(_alternative_pill(bool(row.get("is_alternative", False))), className="pivot-cell"),
