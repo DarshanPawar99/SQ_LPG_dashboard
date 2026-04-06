@@ -764,9 +764,11 @@ def toggle_combined_view(clicks: list[int | None], is_on: bool) -> tuple[bool, s
     prevent_initial_call=True,
 )
 def sync_combined_search(values: list[str | None]) -> str:
-    if not values:
-        return ""
-    return str(values[-1] or "").strip()
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    triggered_value = ctx.triggered[0].get("value")
+    return str(triggered_value or "").strip()
 
 
 if __name__ == "__main__":
