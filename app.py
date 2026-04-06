@@ -116,7 +116,7 @@ app.layout = html.Div(
         dcc.Store(id="store-selected-city", data=initial_city),
         dcc.Store(id="store-selected-risk", data=DEFAULT_SELECTED_RISK),
         dcc.Store(id="store-search-text", data=""),
-        dcc.Store(id="store-city-options", data=initial_cities),
+        dcc.Store(id="store-city-options", data=initial_cities),  # kept for future use
         # ---- stores: alt view ----
         dcc.Store(id="store-alt-view-open", data=False),
         dcc.Store(id="store-alt-selected-type", data=""),
@@ -288,7 +288,6 @@ app.layout = html.Div(
 # -----------------------------------------------------------------------
 @callback(
     Output("store-enriched-rows", "data"),
-    Output("store-city-options", "data"),
     Output("store-selected-city", "data"),
     Output("store-selected-risk", "data"),
     Input("selected-date-input", "value"),
@@ -297,7 +296,7 @@ app.layout = html.Div(
 def refresh_dashboard_for_date(
     selected_date_str: str | None,
     current_city: str | None,
-) -> tuple[list[dict[str, Any]], list[str], str, str]:
+) -> tuple[list[dict[str, Any]], str, str]:
     logger.info("Refreshing dashboard for selected date: %s", selected_date_str)
     selected_date = date.fromisoformat(selected_date_str) if selected_date_str else DEFAULT_SELECTED_DATE
     enriched_rows = enrich_dashboard_rows(RAW_DF, selected_date)
@@ -308,7 +307,7 @@ def refresh_dashboard_for_date(
     else:
         city_value = city_options[0] if city_options else ""
 
-    return enriched_rows, city_options, city_value, ""
+    return enriched_rows, city_value, ""
 
 
 # -----------------------------------------------------------------------
@@ -425,9 +424,10 @@ def select_risk_category(
     prevent_initial_call=True,
 )
 def sync_search_text(search_values: list[str | None]) -> str:
-    if not search_values:
-        return ""
-    return str(search_values[-1] or "").strip()
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    return str(ctx.triggered[0].get("value") or "").strip()
 
 
 # -----------------------------------------------------------------------
@@ -673,9 +673,10 @@ def refresh_alt_executive_view(
     prevent_initial_call=True,
 )
 def sync_alt_search(values: list[str | None]) -> str:
-    if not values:
-        return ""
-    return str(values[-1] or "").strip()
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        raise PreventUpdate
+    return str(ctx.triggered[0].get("value") or "").strip()
 
 
 # -----------------------------------------------------------------------

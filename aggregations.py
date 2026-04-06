@@ -333,7 +333,9 @@ def _get_alt_type(row: dict[str, Any]) -> str:
         return "Both"
     if has_gail:
         return "GAIL/PNG at Vendor"
-    return "Electrical Equipment Availability"
+    if has_elec:
+        return "Electrical Equipment Availability"
+    return "Electrical Equipment Availability"  # fallback: shouldn't reach here for is_alternative=True rows
 
 
 def _count_by_alt_type(rows: list[dict[str, Any]]) -> dict[str, int]:
@@ -437,15 +439,15 @@ def build_combined_pivot_groups(
         )
     )
 
-    enriched: list[dict[str, Any]] = []
+    tagged_rows: list[dict[str, Any]] = []
     for row in city_rows:
         if row.get("is_alternative"):
-            enriched.append({**row, "alt_type": _get_alt_type(row)})
+            tagged_rows.append({**row, "alt_type": _get_alt_type(row)})
         else:
-            enriched.append({**row, "alt_type": ""})
+            tagged_rows.append({**row, "alt_type": ""})
 
     grouped: dict[str, list[dict[str, Any]]] = {}
-    for row in enriched:
+    for row in tagged_rows:
         client = str(row.get("client", "")).strip()
         grouped.setdefault(client, []).append(row)
 

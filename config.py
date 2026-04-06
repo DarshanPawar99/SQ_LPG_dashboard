@@ -1,7 +1,7 @@
 """
 config.py
 
-Central configuration for the LPG Stock Tacker Dashboard.
+Central configuration for the LPG Stock Tracker Dashboard.
 Single source of truth for all constants.
 """
 
